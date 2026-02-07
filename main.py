@@ -423,40 +423,51 @@ from utils.evaluate_results import NO_ANSWER_MARKER, evaluate_results
 MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
 
 # ============================================================
-# Tuning knobs (optimized for RTX 4050 6GB)
+# Tuning knobs (RTX 4050 6GB friendly)
 # ============================================================
 
-# Classification is cheap; start higher and auto-fallback on OOM.
-BATCH_SIZE_CLASSIFY = 12
-BATCH_SIZE_ANSWER = 4
+# Batch sizes (auto-fallback on CUDA OOM)
+BATCH_SIZE_CLASSIFY = 24   # classification is one forward pass (no generation)
+BATCH_SIZE_ANSWER = 4      # answer generation is heavier
 
-MAX_NEW_TOKENS_CLASSIFY = 3
-MAX_NEW_TOKENS_ANSWER = 16
+# Answer generation length (short = faster + better for SQuAD)
+MAX_NEW_TOKENS_ANSWER = 24
 
 # Context caps (major speed lever)
-MAX_CTX_TOKENS_CLASSIFY = 450
+MAX_CTX_TOKENS_CLASSIFY = 256
 MAX_CTX_TOKENS_ANSWER = 900
 
-# Hard cap for tokenizer max_length (major speed lever)
-MAX_PROMPT_TOKENS_CAP = 1536
+# Hard cap for total prompt length in tokens (major speed lever)
+MAX_PROMPT_TOKENS_CAP = 1024
+
+# Gate strictness: require YES score > NO score by this margin
+# Higher => more conservative => better NoAns, maybe worse HasAns
+ANSWERABLE_LOGIT_MARGIN = -0.5 # 4.4
 
 # Progress printing
 PRINT_EVERY = 50
 
-ANSWERABLE_YES = "YES"
+WINDOW_STRIDE = 128
+TOPK_ANSWER_WINDOWS = 2
+TOPK_CLASSIFY_WINDOWS = 1
+
+
 _STOPWORDS = {
     "the", "a", "an", "and", "or", "to", "of", "in", "on", "for", "with",
     "is", "was", "are", "were", "be", "as", "by", "at", "from", "it", "this", "that"
 }
 
 # ============================================================
-# Lazy-loaded globals
+# Lazy globals
 # ============================================================
 
 _TOKENIZER: Optional[AutoTokenizer] = None
 _MODEL: Optional[AutoModelForCausalLM] = None
 _DEVICE: Optional[torch.device] = None
 _MAX_INPUT_TOKENS: Optional[int] = None
+# _YES_TOKEN_ID: Optional[int] = None
+_YES_TOKEN_IDS: Optional[List[int]] = None
+_NO_TOKEN_IDS: Optional[List[int]] = None
 
 
 # ============================================================
@@ -465,6 +476,7 @@ _MAX_INPUT_TOKENS: Optional[int] = None
 
 def _get_device() -> torch.device:
     return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    # return torch.device("cpu")
 
 
 def _infer_max_input_tokens(model, tokenizer) -> int:
@@ -479,8 +491,137 @@ def _infer_max_input_tokens(model, tokenizer) -> int:
     return 4096
 
 
+VERIFY_MARGIN = 0.3  # start at 0.0; increase if too many false positives
+
+def _verify_answer_supported(
+    tokenizer: AutoTokenizer,
+    model: AutoModelForCausalLM,
+    device: torch.device,
+    question: str,
+    context: str,
+    answer: str,
+    max_length: int,
+) -> bool:
+    global _YES_TOKEN_IDS, _NO_TOKEN_IDS
+    assert _YES_TOKEN_IDS is not None and _NO_TOKEN_IDS is not None
+
+    if answer == NO_ANSWER_MARKER:
+        return True
+
+    msgs = [
+        {"role": "system", "content": "You are a strict QA verifier. Reply ONLY YES or NO."},
+        {"role": "user", "content":
+            f"QUESTION:\n{question}\n\nCONTEXT:\n{context}\n\nPROPOSED ANSWER:\n{answer}\n\n"
+            "Is the proposed answer fully supported by the context for this question? YES or NO: "
+        },
+    ]
+    prompt = tokenizer.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+
+    inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=max_length)
+    input_ids = inputs["input_ids"].to(device)
+    attn = inputs["attention_mask"].to(device)
+
+    yes_lp = _completion_logprob_sum(model, input_ids, attn, _YES_TOKEN_IDS, tokenizer.pad_token_id)
+    no_lp  = _completion_logprob_sum(model, input_ids, attn, _NO_TOKEN_IDS, tokenizer.pad_token_id)
+
+    return (yes_lp - no_lp).item() > VERIFY_MARGIN
+
+
+def _keywords(question: str) -> List[str]:
+    words = re.findall(r"[A-Za-z0-9]+", (question or "").lower())
+    return [w for w in words if w not in _STOPWORDS and len(w) >= 3]
+
+
+def _overlap_score(text: str, keys: List[str]) -> int:
+    if not keys:
+        return 0
+    low = (text or "").lower()
+    # count occurrences (cheap heuristic)
+    return sum(low.count(k) for k in keys)
+
+
+def _top_k_windows(
+    tokenizer: AutoTokenizer,
+    context: str,
+    question: str,
+    max_tokens: int,
+    stride: int,
+    top_k: int,
+) -> List[str]:
+    ctx = "" if context is None else str(context)
+    if not ctx.strip():
+        return [""]
+
+    ids = tokenizer(ctx, add_special_tokens=False).input_ids
+    if len(ids) <= max_tokens:
+        return [ctx]
+
+    keys = _keywords(question)
+
+    step = max(1, max_tokens - stride)
+    windows = []
+    for start in range(0, len(ids), step):
+        end = min(start + max_tokens, len(ids))
+        chunk = tokenizer.decode(ids[start:end], skip_special_tokens=True)
+        score = _overlap_score(chunk, keys)
+        windows.append((score, start, chunk))
+        if end == len(ids):
+            break
+
+    windows.sort(key=lambda x: (x[0], -x[1]), reverse=True)
+    best = [w[2] for w in windows[:top_k]]
+    return best if best else [ctx]
+
+
+def _completion_logprob_sum(
+    model: AutoModelForCausalLM,
+    input_ids: torch.Tensor,       # [B, L]
+    attn: torch.Tensor,            # [B, L]
+    completion_ids: List[int],     # length T
+    pad_token_id: int,
+) -> torch.Tensor:
+    # Build completion tensor [B, T]
+    B, L = input_ids.shape
+    T = len(completion_ids)
+    comp = torch.tensor(completion_ids, dtype=torch.long, device=input_ids.device).unsqueeze(0).repeat(B, 1)
+
+    ext_ids = torch.cat([input_ids, comp], dim=1)                      # [B, L+T]
+    ext_attn = torch.cat([attn, torch.ones((B, T), device=attn.device, dtype=attn.dtype)], dim=1)
+
+    with torch.inference_mode():
+        out = model(ext_ids, attention_mask=ext_attn)
+        logits = out.logits  # [B, L+T, V]
+
+    # Sum logprobs of completion tokens
+    logp = torch.zeros((B,), device=input_ids.device)
+    for t in range(T):
+        # token at position (L+t) is predicted by logits at (L+t-1)
+        step_logits = logits[:, L + t - 1, :]
+        step_logp = torch.log_softmax(step_logits, dim=-1)
+        tok = comp[:, t]
+        logp += step_logp.gather(1, tok.unsqueeze(1)).squeeze(1)
+    return logp
+
+
+def _resolve_yes_no_token_ids(tokenizer: AutoTokenizer) -> Tuple[List[int], List[int]]:
+    """
+    Resolve single-token IDs for " YES" and " NO".
+    For SentencePiece tokenizers, leading space often matters.
+    We take the first token ID if encoding returns multiple tokens.
+    """
+    yes_ids = tokenizer.encode("YES", add_special_tokens=False)
+    no_ids  = tokenizer.encode("NO", add_special_tokens=False)
+
+    if not yes_ids:
+        yes_ids = tokenizer.encode(" YES", add_special_tokens=False)
+    if not no_ids:
+        no_ids = tokenizer.encode(" NO", add_special_tokens=False)
+
+    return yes_ids, no_ids
+
+
 def _load_model_once() -> Tuple[AutoTokenizer, AutoModelForCausalLM, torch.device, int]:
-    global _TOKENIZER, _MODEL, _DEVICE, _MAX_INPUT_TOKENS
+    global _TOKENIZER, _MODEL, _DEVICE, _MAX_INPUT_TOKENS, _YES_TOKEN_IDS, _NO_TOKEN_IDS
 
     if _TOKENIZER is not None and _MODEL is not None and _DEVICE is not None and _MAX_INPUT_TOKENS is not None:
         return _TOKENIZER, _MODEL, _DEVICE, _MAX_INPUT_TOKENS
@@ -496,7 +637,6 @@ def _load_model_once() -> Tuple[AutoTokenizer, AutoModelForCausalLM, torch.devic
 
     dtype = torch.float16 if device.type == "cuda" else torch.float32
 
-    # IMPORTANT: load fully on GPU; avoid device_map offload
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
         token=True,
@@ -507,7 +647,7 @@ def _load_model_once() -> Tuple[AutoTokenizer, AutoModelForCausalLM, torch.devic
     model.eval()
     model.config.pad_token_id = tokenizer.pad_token_id
 
-    # Silence noisy irrelevant flags if present
+    # Silence noisy flags if present (not critical)
     if hasattr(model, "generation_config"):
         if hasattr(model.generation_config, "temperature"):
             model.generation_config.temperature = None
@@ -515,6 +655,10 @@ def _load_model_once() -> Tuple[AutoTokenizer, AutoModelForCausalLM, torch.devic
             model.generation_config.top_p = None
 
     max_input_tokens = _infer_max_input_tokens(model, tokenizer)
+
+    # _YES_TOKEN_ID, _NO_TOKEN_ID = _resolve_yes_no_token_ids(tokenizer)
+    _YES_TOKEN_IDS, _NO_TOKEN_IDS = _resolve_yes_no_token_ids(tokenizer)
+
 
     _TOKENIZER, _MODEL, _DEVICE, _MAX_INPUT_TOKENS = tokenizer, model, device, max_input_tokens
     return tokenizer, model, device, max_input_tokens
@@ -604,20 +748,12 @@ def _clean_first_line(text: str) -> str:
     return lines[0].strip(" \t\r\n`\"'")
 
 
-def _first_word_upper(text: str) -> str:
-    s = _clean_first_line(text)
-    m = re.match(r"([A-Za-z]+)", s)
-    return m.group(1).upper() if m else ""
-
-
 def _looks_like_no_answer(text: str) -> bool:
     if not text:
         return True
     t = text.strip().lower()
-
     if t == NO_ANSWER_MARKER.lower() or t.startswith(NO_ANSWER_MARKER.lower()):
         return True
-
     if any(p in t for p in [
         "not mentioned", "cannot be determined", "insufficient information",
         "not provided", "not stated", "unknown", "no information"
@@ -640,14 +776,14 @@ def _ground_exact_or_fuzzy(answer: str, context: str) -> Optional[str]:
     if idx >= 0:
         return ans
 
-    # case-insensitive (return original slice)
+    # case-insensitive
     low_ctx = ctx.lower()
     low_ans = ans.lower()
     idx = low_ctx.find(low_ans)
     if idx >= 0:
         return ctx[idx: idx + len(ans)]
 
-    # regex word-sequence
+    # regex word sequence
     words = re.findall(r"[A-Za-z0-9]+", ans)
     if len(words) >= 2:
         pattern = r""
@@ -709,7 +845,7 @@ def _finalize_answer(answer_text: str, context: str, allow_shrink: bool) -> str:
 
 
 # ============================================================
-# Batched generation with OOM fallback + progress
+# Batch helpers + safe OOM fallback
 # ============================================================
 
 def _chunks_indices(n: int, batch_size: int) -> Iterable[Tuple[int, int]]:
@@ -717,66 +853,186 @@ def _chunks_indices(n: int, batch_size: int) -> Iterable[Tuple[int, int]]:
         yield start, min(start + batch_size, n)
 
 
-def _generate_batch(
+def _progress_print(phase: str, done: int, total: int, next_mark: int) -> int:
+    """
+    Print progress when 'done' passes next_mark; works with any batch size.
+    """
+    while done >= next_mark:
+        print(f"[{phase}] {min(next_mark, total)}/{total}")
+        next_mark += PRINT_EVERY
+    if done == total:
+        print(f"[{phase}] {total}/{total}")
+    return next_mark
+
+
+# ============================================================
+# Priority A: Answerability via logits (fast, no generation)
+# ============================================================
+
+# def _answerable_gate_scores(
+#     tokenizer: AutoTokenizer,
+#     model: AutoModelForCausalLM,
+#     device: torch.device,
+#     prompts: List[str],
+#     max_length: int,
+#     batch_size: int,
+# ) -> List[bool]:
+#     global _YES_TOKEN_IDS, _NO_TOKEN_IDS
+#     assert _YES_TOKEN_IDS is not None and _NO_TOKEN_IDS is not None
+
+#     results: List[bool] = []
+#     bs = batch_size
+#     next_mark = PRINT_EVERY
+
+#     while True:
+#         try:
+#             for start, end in _chunks_indices(len(prompts), bs):
+#                 batch_prompts = prompts[start:end]
+#                 inputs = tokenizer(
+#                     batch_prompts,
+#                     return_tensors="pt",
+#                     padding=True,
+#                     truncation=True,
+#                     max_length=max_length,
+#                 )
+#                 input_ids = inputs["input_ids"].to(device)
+#                 attn = inputs["attention_mask"].to(device)
+
+#                 with torch.inference_mode():
+#                     gen_out = model.generate(
+#                         input_ids=input_ids,
+#                         attention_mask=attn,
+#                         max_new_tokens=1,
+#                         do_sample=False,
+#                         pad_token_id=tokenizer.pad_token_id,
+#                         eos_token_id=tokenizer.eos_token_id,
+#                         use_cache=True,
+#                         return_dict_in_generate=True,
+#                         output_scores=True,
+#                     )
+
+#                 # scores[0] is logits for the first generated token: [B, V]
+#                 scores0 = gen_out.scores[0]
+#                 yes = scores0[:, _YES_TOKEN_IDS]
+#                 no = scores0[:, _NO_TOKEN_IDS]
+#                 is_yes = (yes - no) > ANSWERABLE_LOGIT_MARGIN
+#                 results.extend(is_yes.detach().cpu().tolist())
+
+#                 next_mark = _progress_print("classify", end, len(prompts), next_mark)
+
+#             return results
+#         except RuntimeError as e:
+#             if device.type == "cuda" and "out of memory" in str(e).lower():
+#                 torch.cuda.empty_cache()
+#                 if bs <= 1:
+#                     raise
+#                 new_bs = max(1, bs // 2)
+#                 print(f"[classify] CUDA OOM at batch_size={bs}. Retrying with batch_size={new_bs}...")
+#                 bs = new_bs
+#                 results = []
+#                 next_mark = PRINT_EVERY
+#                 continue
+#             raise
+
+def _answerable_gate_scores(
     tokenizer: AutoTokenizer,
     model: AutoModelForCausalLM,
     device: torch.device,
     prompts: List[str],
-    max_new_tokens: int,
-    max_length: int,
-) -> List[str]:
-    inputs = tokenizer(
-        prompts,
-        return_tensors="pt",
-        padding=True,
-        truncation=True,
-        max_length=max_length,
-    )
-    input_ids = inputs["input_ids"].to(device)
-    attn = inputs["attention_mask"].to(device)
-
-    with torch.inference_mode():
-        out = model.generate(
-            input_ids=input_ids,
-            attention_mask=attn,
-            max_new_tokens=max_new_tokens,
-            do_sample=False,
-            pad_token_id=tokenizer.pad_token_id,
-            eos_token_id=tokenizer.eos_token_id,
-            use_cache=True,
-        )
-
-    gen = out[:, input_ids.shape[1]:]
-    return tokenizer.batch_decode(gen, skip_special_tokens=True)
-
-
-def _safe_generate_all(
-    tokenizer: AutoTokenizer,
-    model: AutoModelForCausalLM,
-    device: torch.device,
-    prompts: List[str],
-    max_new_tokens: int,
     max_length: int,
     batch_size: int,
-    phase_name: str,
-    print_every: int,
-) -> List[str]:
-    if not prompts:
-        return []
+) -> List[bool]:
+    global _YES_TOKEN_IDS, _NO_TOKEN_IDS
+    assert _YES_TOKEN_IDS is not None and _NO_TOKEN_IDS is not None
 
+    results: List[bool] = []
     bs = batch_size
+    next_mark = PRINT_EVERY
+
     while True:
         try:
-            outputs: List[str] = []
             for start, end in _chunks_indices(len(prompts), bs):
-                outputs.extend(_generate_batch(
-                    tokenizer, model, device,
-                    prompts[start:end],
-                    max_new_tokens=max_new_tokens,
+                batch_prompts = prompts[start:end]
+                inputs = tokenizer(
+                    batch_prompts,
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
                     max_length=max_length,
-                ))
-                if end % print_every == 0 or end == len(prompts):
-                    print(f"[{phase_name}] {end}/{len(prompts)}")
+                )
+                input_ids = inputs["input_ids"].to(device)
+                attn = inputs["attention_mask"].to(device)
+
+                yes_lp = _completion_logprob_sum(model, input_ids, attn, _YES_TOKEN_IDS, tokenizer.pad_token_id)
+                no_lp  = _completion_logprob_sum(model, input_ids, attn, _NO_TOKEN_IDS, tokenizer.pad_token_id)
+
+                diff = yes_lp - no_lp
+                is_yes = diff > ANSWERABLE_LOGIT_MARGIN   # margin now in logprob units!
+                results.extend(is_yes.detach().cpu().tolist())
+
+                next_mark = _progress_print("classify", end, len(prompts), next_mark)
+
+            return results
+
+        except RuntimeError as e:
+            if device.type == "cuda" and "out of memory" in str(e).lower():
+                torch.cuda.empty_cache()
+                if bs <= 1:
+                    raise
+                bs = max(1, bs // 2)
+                print(f"[classify] CUDA OOM. Retrying with batch_size={bs}...")
+                results = []
+                next_mark = PRINT_EVERY
+                continue
+            raise
+
+
+# ============================================================
+# Answer generation (only for answerable indices)
+# ============================================================
+
+def _generate_answers(
+    tokenizer: AutoTokenizer,
+    model: AutoModelForCausalLM,
+    device: torch.device,
+    prompts: List[str],
+    max_length: int,
+    batch_size: int,
+) -> List[str]:
+    outputs: List[str] = []
+    bs = batch_size
+    next_mark = PRINT_EVERY
+
+    while True:
+        try:
+            for start, end in _chunks_indices(len(prompts), bs):
+                batch_prompts = prompts[start:end]
+                inputs = tokenizer(
+                    batch_prompts,
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                    max_length=max_length,
+                )
+                input_ids = inputs["input_ids"].to(device)
+                attn = inputs["attention_mask"].to(device)
+
+                with torch.inference_mode():
+                    out = model.generate(
+                        input_ids=input_ids,
+                        attention_mask=attn,
+                        max_new_tokens=MAX_NEW_TOKENS_ANSWER,
+                        do_sample=False,
+                        pad_token_id=tokenizer.pad_token_id,
+                        eos_token_id=tokenizer.eos_token_id,
+                        use_cache=True,
+                    )
+
+                gen = out[:, input_ids.shape[1]:]
+                outputs.extend(tokenizer.batch_decode(gen, skip_special_tokens=True))
+
+                next_mark = _progress_print("answer", end, len(prompts), next_mark)
+
             return outputs
         except RuntimeError as e:
             if device.type == "cuda" and "out of memory" in str(e).lower():
@@ -784,8 +1040,10 @@ def _safe_generate_all(
                 if bs <= 1:
                     raise
                 new_bs = max(1, bs // 2)
-                print(f"[{phase_name}] CUDA OOM at batch_size={bs}. Retrying with batch_size={new_bs}...")
+                print(f"[answer] CUDA OOM at batch_size={bs}. Retrying with batch_size={new_bs}...")
                 bs = new_bs
+                outputs = []
+                next_mark = PRINT_EVERY
                 continue
             raise
 
@@ -812,35 +1070,34 @@ def squad_qa(data_filename: str) -> str:
     contexts_full = df["context"].fillna("").astype(str).tolist()
 
     # -------------------------
-    # A) Answerability gate
+    # A) Answerability gate (logits)
     # -------------------------
-    contexts_cls = [_truncate_context_tokens(tokenizer, c, MAX_CTX_TOKENS_CLASSIFY) for c in contexts_full]
+    contexts_cls_list = [
+        _top_k_windows(tokenizer, c, q, MAX_CTX_TOKENS_CLASSIFY, WINDOW_STRIDE, TOPK_CLASSIFY_WINDOWS)
+        for q, c in zip(questions, contexts_full)
+    ]
 
     cls_prompts = [
         tokenizer.apply_chat_template(
-            _build_messages_answerable(q, c),
+            _build_messages_answerable(q, c_list[0]),  # best classify window
             tokenize=False,
             add_generation_prompt=True,
         )
-        for q, c in zip(questions, contexts_cls)
+        for q, c_list in zip(questions, contexts_cls_list)
     ]
 
+
     print("[classify] starting...")
-    cls_raw = _safe_generate_all(
+    is_answerable = _answerable_gate_scores(
         tokenizer=tokenizer,
         model=model,
         device=device,
         prompts=cls_prompts,
-        max_new_tokens=MAX_NEW_TOKENS_CLASSIFY,
-        max_length=prompt_cap - MAX_NEW_TOKENS_CLASSIFY,
+        max_length=prompt_cap,  # full cap; classification is just forward
         batch_size=BATCH_SIZE_CLASSIFY if device.type == "cuda" else 1,
-        phase_name="classify",
-        print_every=PRINT_EVERY,
     )
 
-    is_answerable = [(_first_word_upper(t) == ANSWERABLE_YES) for t in cls_raw]
     answerable_indices = [i for i, ok in enumerate(is_answerable) if ok]
-
     print(
         f"[squad_qa] answerable_gate: YES={len(answerable_indices)} / {len(df)} "
         f"({len(answerable_indices)/max(1,len(df))*100:.1f}%)"
@@ -858,43 +1115,132 @@ def squad_qa(data_filename: str) -> str:
     # -------------------------
     # Generate answers only for YES
     # -------------------------
-    contexts_ans = [_truncate_context_tokens(tokenizer, c, MAX_CTX_TOKENS_ANSWER) for c in contexts_full]
+    # contexts_ans = [_truncate_context_tokens(tokenizer, c, MAX_CTX_TOKENS_ANSWER) for c in contexts_full]
+    # contexts_ans_list = [
+    #     _top_k_windows(tokenizer, c, q, MAX_CTX_TOKENS_ANSWER, WINDOW_STRIDE, TOPK_ANSWER_WINDOWS)
+    #     for q, c in zip(questions, contexts_full)
+    # ]
 
-    ans_prompts: List[str] = []
-    ans_contexts: List[str] = []
-    ans_positions: List[int] = []
+    # ans_prompts: List[str] = []
+    # ans_contexts: List[str] = []
+    # ans_positions: List[int] = []
 
-    for i in answerable_indices:
-        q = questions[i]
-        c = contexts_ans[i]
-        ans_prompts.append(
-            tokenizer.apply_chat_template(
-                _build_messages_answer(q, c),
-                tokenize=False,
-                add_generation_prompt=True,
+    # for i in answerable_indices:
+    #     q = questions[i]
+    #     c = contexts_ans_list[i][0]
+    #     ans_prompts.append(
+    #         tokenizer.apply_chat_template(
+    #             _build_messages_answer(q, c),
+    #             tokenize=False,
+    #             add_generation_prompt=True,
+    #         )
+    #     )
+    #     ans_contexts.append(c)
+    #     ans_positions.append(i)
+
+    # print("[answer] starting...")
+    # raw_answers = _generate_answers(
+    #     tokenizer=tokenizer,
+    #     model=model,
+    #     device=device,
+    #     prompts=ans_prompts,
+    #     max_length=prompt_cap - MAX_NEW_TOKENS_ANSWER,
+    #     batch_size=BATCH_SIZE_ANSWER if device.type == "cuda" else 1,
+    # )
+
+    # -------------------------
+    # Generate answers only for YES (with window fallback)
+    # -------------------------
+    contexts_ans_list = [
+        _top_k_windows(tokenizer, c, q, MAX_CTX_TOKENS_ANSWER, WINDOW_STRIDE, TOPK_ANSWER_WINDOWS)
+        for q, c in zip(questions, contexts_full)
+    ]
+
+    # conservative default already set: final_answers = [NO_ANSWER_MARKER] * len(df)
+    pending = list(answerable_indices)
+
+    # Try windows in order: window 0, then window 1 (up to TOPK_ANSWER_WINDOWS)
+    for w in range(TOPK_ANSWER_WINDOWS):
+        if not pending:
+            break
+
+        ans_prompts: List[str] = []
+        ans_contexts: List[str] = []
+        ans_positions: List[int] = []
+
+        for i in pending:
+            q = questions[i]
+            wins = contexts_ans_list[i]
+            # Safety: if fewer windows exist than expected, reuse the last available
+            ctx = wins[w] if w < len(wins) else wins[-1]
+
+            ans_prompts.append(
+                tokenizer.apply_chat_template(
+                    _build_messages_answer(q, ctx),
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
             )
-        )
-        ans_contexts.append(c)
-        ans_positions.append(i)
+            ans_contexts.append(ctx)
+            ans_positions.append(i)
 
-    print("[answer] starting...")
-    ans_raw = _safe_generate_all(
-        tokenizer=tokenizer,
-        model=model,
-        device=device,
-        prompts=ans_prompts,
-        max_new_tokens=MAX_NEW_TOKENS_ANSWER,
-        max_length=prompt_cap - MAX_NEW_TOKENS_ANSWER,
-        batch_size=BATCH_SIZE_ANSWER if device.type == "cuda" else 1,
-        phase_name="answer",
-        print_every=PRINT_EVERY,
-    )
+        print(f"[answer] starting... (window {w+1}/{TOPK_ANSWER_WINDOWS}, n={len(ans_prompts)})")
+        raw_answers = _generate_answers(
+            tokenizer=tokenizer,
+            model=model,
+            device=device,
+            prompts=ans_prompts,
+            max_length=prompt_cap - MAX_NEW_TOKENS_ANSWER,
+            batch_size=BATCH_SIZE_ANSWER if device.type == "cuda" else 1,
+        )
+
+        next_pending: List[int] = []
+
+        for raw, ctx, pos in zip(raw_answers, ans_contexts, ans_positions):
+            cand = _finalize_answer(raw, ctx, allow_shrink=True)
+
+            if cand != NO_ANSWER_MARKER:
+                ok = _verify_answer_supported(
+                    tokenizer=tokenizer,
+                    model=model,
+                    device=device,
+                    question=questions[pos],
+                    context=ctx,
+                    answer=cand,
+                    max_length=prompt_cap,
+                )
+                if ok:
+                    final_answers[pos] = cand
+                else:
+                    next_pending.append(pos)
+            else:
+                next_pending.append(pos)
+
+        pending = next_pending
+
 
     # -------------------------
     # C) Grounding + shrink-to-span
     # -------------------------
-    for raw, ctx, pos in zip(ans_raw, ans_contexts, ans_positions):
-        final_answers[pos] = _finalize_answer(raw, ctx, allow_shrink=True)
+    # for raw, ctx, pos in zip(raw_answers, ans_contexts, ans_positions):
+    #     final_answers[pos] = _finalize_answer(raw, ctx, allow_shrink=True)
+    # for raw, ctx, pos in zip(raw_answers, ans_contexts, ans_positions):
+    #     cand = _finalize_answer(raw, ctx, allow_shrink=True)
+
+    #     if cand != NO_ANSWER_MARKER:
+    #         ok = _verify_answer_supported(
+    #             tokenizer=tokenizer,
+    #             model=model,
+    #             device=device,
+    #             question=questions[pos],
+    #             context=ctx,
+    #             answer=cand,
+    #             max_length=prompt_cap,
+    #         )
+    #         final_answers[pos] = cand if ok else NO_ANSWER_MARKER
+    #     else:
+    #         final_answers[pos] = NO_ANSWER_MARKER
+
 
     df["final answer"] = final_answers
     df.to_csv(out_filename, index=False)
