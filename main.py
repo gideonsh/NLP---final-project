@@ -19,6 +19,7 @@ model = AutoModelForCausalLM.from_pretrained(model_name, dtype=torch.float16, to
 model.config.pad_token_id = tokenizer.eos_token_id
 tokenizer.pad_token_id = tokenizer.eos_token_id
 
+torch.set_num_threads(os.cpu_count()-2) # Use all your power
 final_answer_column = "final_answer"
 
 
@@ -214,15 +215,13 @@ def squad_qa(data_filename):
     df = pd.read_csv(data_filename)
     no_token_id = tokenizer.convert_tokens_to_ids("NO")
     
-    # 1. TUNING FOR 10/12: Lower threshold = Less Conservative
-    # Lowering this ensures we don't 'Over-correct' on answerable questions.
     prob_threshold = 0.05 
     final_answers = []
 
     for idx, row in df.iterrows():
         # --- STAGE 1: Prompt Construction ---
         messages = [
-            {"role": "system", "content": "Extract the answer from text. If not there, say 'NO ANSWER'. Make sure to use the exact same answer as in the text."},
+            {"role": "system", "content": "Extract the answer from text. Output ONLY the answer. If the answer is not there, say 'NO ANSWER'."},
             {"role": "user", "content": f"Context: {row['context']}\nQuestion: {row['question']}"},
         ]
         prompt = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
@@ -292,15 +291,18 @@ def squad_qa(data_filename):
 
     df['final_answer'] = final_answers
     df.to_csv(data_filename.replace('.csv', '-results.csv'), index=False)
-    return df
+
+    return data_filename.replace('.csv', '-results.csv')
 
 # Dev Main
 if __name__ == '__main__':
     # Start tracking time for the verification run
     start_time = time.time()
+
+    test_file_name = 'tiny_dev_12'
     
     # Path to your existing dev file
-    dev_file_path = 'dev-data/tiny_dev_12.csv'
+    dev_file_path = f'dev-data/{test_file_name}.csv'
     
     print(f"[START] Starting Dev-Verification on: {dev_file_path}")
     print("=" * 60)
@@ -316,9 +318,13 @@ if __name__ == '__main__':
     # trial_name helps distinguish this 'tiny' run in your trials_log.md
     metrics = analyze_performance(
         results_file=out_filename,
-        trial_name=f"dev_trial_tiny_{datetime.now().strftime('%Y%m%d%H%M')}",
+        trial_name=f"{test_file_name}_{datetime.now().strftime('%Y%m%d%H%M')}",
         log_file='dev-data/trials_log.md',
     )
+
+    eval_out = evaluate_results(out_filename, final_answer_column='final_answer')
+    eval_out_list = [str((k, round(v, 3))) for (k, v) in eval_out.items()]
+    print('\n'.join(eval_out_list))
 
     # Step 3: Final runtime report
     elapsed_time = time.time() - start_time
