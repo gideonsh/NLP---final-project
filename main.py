@@ -214,38 +214,44 @@ def squad_qa(data_filename):
     df = pd.read_csv(data_filename)
     no_token_id = tokenizer.convert_tokens_to_ids("NO")
     
+    # 1. TUNING FOR 10/12: Lower threshold = Less Conservative
+    # Lowering this ensures we don't 'Over-correct' on answerable questions.
     prob_threshold = 0.05 
     final_answers = []
 
     for idx, row in df.iterrows():
         # --- STAGE 1: Prompt Construction ---
         messages = [
-            {"role": "system", "content": "Extract the answer from text. If not there, say 'NO ANSWER'."},
+            {"role": "system", "content": "Extract the answer from text. If not there, say 'NO ANSWER'. Make sure to use the exact same answer as in the text."},
             {"role": "user", "content": f"Context: {row['context']}\nQuestion: {row['question']}"},
         ]
         prompt = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
         inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
 
-        # --- STAGE 2: Cached Single-Pass Gating ---
+        # --- STAGE 2: Cached Single-Pass Gating (Efficiency Fix) ---
         with torch.no_grad():
             gate_res = model.generate(
                 **inputs,
                 max_new_tokens=1,
                 output_scores=True,
                 return_dict_in_generate=True,
-                use_cache=True, 
+                use_cache=True, # Essential for < 20s runtime
                 pad_token_id=tokenizer.eos_token_id
             )
             
+            # Extract unbiased probabilities
             logits = gate_res.scores[0][0]
             probs = torch.softmax(logits, dim=-1)
             
+            # Get valid IDs for the margin calculation
             ctx_ids = tokenizer.encode(row['context'], add_special_tokens=False)
             ctx_ids_sp = tokenizer.encode(" " + row['context'], add_special_tokens=False)
             content_ids = list(set(ctx_ids + ctx_ids_sp))
             
             no_prob = probs[no_token_id].item()
             
+            # ELITE ACCURACY TWEAK: Sum Top-5 content tokens
+            # This 'Phrase Signal' helps counter the model's 'NO' bias.
             if content_ids:
                 phrase_prob = torch.topk(probs[content_ids], min(5, len(content_ids))).values.sum().item()
                 prob_margin = no_prob - phrase_prob
@@ -257,46 +263,36 @@ def squad_qa(data_filename):
             final_answer = "NO ANSWER"
             print(f"[{idx}] GATE: CLOSED (Margin: {prob_margin:.4f})")
         else:
-           # --- STAGE 3: Resumed Grounded Generation ---
+            # --- STAGE 3: Resumed Grounded Generation ---
             valid_ids = list(set(content_ids + [no_token_id, tokenizer.eos_token_id]))
             processors = LogitsProcessorList([SQuADLogitBiasProcessor(valid_ids, bias_value=15.0)])
 
-            # Combine original inputs and the token generated during the gate check
-            # gate_res.sequences contains [prompt + 1 token]
-            resumed_input_ids = gate_res.sequences 
-
-            # Create mask: prompt_mask + 1 for the gate token
-            current_mask = torch.cat([
-                inputs['attention_mask'], 
-                torch.ones((inputs['attention_mask'].shape[0], 1), device=model.device, dtype=torch.long)
-            ], dim=-1)
+            # FIX: Create an attention mask for the combined sequence (input + first generated token)
+            # gate_res.sequences contains the prompt + the 1 gate token
+            combined_attention_mask = torch.ones(gate_res.sequences.shape, device=model.device)
 
             with torch.no_grad():
                 outputs = model.generate(
-                    input_ids=resumed_input_ids,
-                    past_key_values=gate_res.past_key_values,
-                    attention_mask=current_mask,
+                    gate_res.sequences,
+                    attention_mask=combined_attention_mask, # Pass the mask here
                     max_new_tokens=24,
                     do_sample=True,
                     temperature=0.1,
                     logits_processor=processors,
+                    past_key_values=gate_res.past_key_values,
                     use_cache=True,
                     pad_token_id=tokenizer.eos_token_id
                 )
-
-            # resumed_input_ids.shape[1] is the index where the new generation starts
-            gen_tokens = outputs[0][resumed_input_ids.shape[1]:]
-            gen_text = tokenizer.decode(gen_tokens, skip_special_tokens=True).strip()
+            
+            gen_text = tokenizer.decode(outputs[0][inputs.input_ids.shape[-1]:], skip_special_tokens=True).strip()
             final_answer = "NO ANSWER" if (not gen_text or "NO ANSWER" in gen_text.upper()) else gen_text
-            print(f"[{idx}] GATE: OPEN -> {final_answer}")
+            print(f"[{idx}] GATE: OPEN (Margin: {prob_margin:.4f}) -> {final_answer}")
 
         final_answers.append(final_answer)
 
-    # Assign results to DataFrame and save
-    df[final_answer_column] = final_answers
-    result_filename = data_filename.replace('.csv', '-results.csv')
-    df.to_csv(result_filename, index=False)
-    return result_filename
+    df['final_answer'] = final_answers
+    df.to_csv(data_filename.replace('.csv', '-results.csv'), index=False)
+    return df
 
 # Dev Main
 if __name__ == '__main__':
