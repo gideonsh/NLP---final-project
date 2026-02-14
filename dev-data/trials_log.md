@@ -1,0 +1,811 @@
+# SQuAD 2.0 Trials Log
+
+This file tracks all trial runs to monitor improvements and avoid over-correction.
+
+---
+
+## Baseline Test - Sample Results
+**Timestamp:** 2026-02-07 18:04:07
+
+**Dataset:** data/squad2.0-dev-1000-sample-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 50.00 |
+| **Overall F1** | 51.00 |
+| **NoAns Accuracy** | 78.26% (18/23) |
+| **HasAns F1** | 27.78 |
+| **HasAns EM** | 25.93 |
+| **Total Questions** | 50 (HasAns: 27, NoAns: 23) |
+
+---
+
+## dev_trial_tiny_202602071853
+**Timestamp:** 2026-02-07 18:53:29
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 50.00 |
+| **Overall F1** | 61.11 |
+| **NoAns Accuracy** | 100.00% (4/4) |
+| **HasAns F1** | 41.67 |
+| **HasAns EM** | 25.00 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+
+## dev_trial_tiny_202602071903
+**Timestamp:** 2026-02-07 19:03:32
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 50.00 |
+| **Overall F1** | 61.11 |
+| **NoAns Accuracy** | 100.00% (4/4) |
+| **HasAns F1** | 41.67 |
+| **HasAns EM** | 25.00 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+
+### Detailed Results
+
+| CSV Line | Question | Actual Answer | Model Prediction | Status |
+|----------|----------|---------------|------------------|--------|
+| 2 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 3 | What is the expression set called where three inte... | NO ANSWER | NO ANSWER | ✅ |
+| 4 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 5 | What are the Sky Q mini set top boxes never able t... | NO ANSWER | NO ANSWER | ✅ |
+| 6 | A problem set that that is hard for the expression... | NP-hard | NO ANSWER | ❌ |
+| 7 | When did Sky launch a TV advertising campaign targ... | September 2007 | 2007 | ❌ |
+| 8 | In what unit is the size of the input measured? | bits | NO ANSWER | ❌ |
+| 9 | What do encrypted broadcasts never require? | NO ANSWER | NO ANSWER | ✅ |
+| 10 | What are the two integer responses to a decision p... | 1 or 0 | 0 and 1. | ❌ |
+| 11 | The Los Angeles Rams are an example of what kind o... | NFL | Professional | ❌ |
+| 12 | What is the name of the desert near the border of ... | Mojave Desert | Mojave Desert | ✅ |
+| 13 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | NO ANSWER | ❌ |
+
+⚠️ **WARNING: Potential Over-correction Detected!**
+High NoAns accuracy but low HasAns F1 suggests the model is too conservative.
+
+---
+
+## dev_trial_tiny_202602071914
+**Timestamp:** 2026-02-07 19:14:53
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 50.00 |
+| **Overall F1** | 61.11 |
+| **NoAns Accuracy** | 100.00% (4/4) |
+| **HasAns F1** | 41.67 |
+| **HasAns EM** | 25.00 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+
+### Detailed Results
+
+| CSV Line | Question | Actual Answer | Model Prediction | Status |
+|----------|----------|---------------|------------------|--------|
+| 2 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 3 | What is the expression set called where three inte... | NO ANSWER | NO ANSWER | ✅ |
+| 4 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 5 | What are the Sky Q mini set top boxes never able t... | NO ANSWER | NO ANSWER | ✅ |
+| 6 | A problem set that that is hard for the expression... | NP-hard | NO ANSWER | ❌ |
+| 7 | When did Sky launch a TV advertising campaign targ... | September 2007 | 2007 | ❌ |
+| 8 | In what unit is the size of the input measured? | bits | NO ANSWER | ❌ |
+| 9 | What do encrypted broadcasts never require? | NO ANSWER | NO ANSWER | ✅ |
+| 10 | What are the two integer responses to a decision p... | 1 or 0 | 0 and 1. | ❌ |
+| 11 | The Los Angeles Rams are an example of what kind o... | NFL | Professional | ❌ |
+| 12 | What is the name of the desert near the border of ... | Mojave Desert | Mojave Desert | ✅ |
+| 13 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | NO ANSWER | ❌ |
+
+⚠️ **WARNING: Potential Over-correction Detected!**
+High NoAns accuracy but low HasAns F1 suggests the model is too conservative.
+
+---
+
+## dev_trial_tiny_202602071926
+**Timestamp:** 2026-02-07 19:26:10
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 50.00 |
+| **Overall F1** | 61.11 |
+| **NoAns Accuracy** | 100.00% (4/4) |
+| **HasAns F1** | 41.67 |
+| **HasAns EM** | 25.00 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+
+### Detailed Results
+
+| CSV Line | Question | Actual Answer | Model Prediction | Status |
+|----------|----------|---------------|------------------|--------|
+| 2 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 3 | What is the expression set called where three inte... | NO ANSWER | NO ANSWER | ✅ |
+| 4 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 5 | What are the Sky Q mini set top boxes never able t... | NO ANSWER | NO ANSWER | ✅ |
+| 6 | A problem set that that is hard for the expression... | NP-hard | NO ANSWER | ❌ |
+| 7 | When did Sky launch a TV advertising campaign targ... | September 2007 | 2007 | ❌ |
+| 8 | In what unit is the size of the input measured? | bits | NO ANSWER | ❌ |
+| 9 | What do encrypted broadcasts never require? | NO ANSWER | NO ANSWER | ✅ |
+| 10 | What are the two integer responses to a decision p... | 1 or 0 | 1 and 0 | ❌ |
+| 11 | The Los Angeles Rams are an example of what kind o... | NFL | Professional | ❌ |
+| 12 | What is the name of the desert near the border of ... | Mojave Desert | Mojave Desert | ✅ |
+| 13 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | NO ANSWER | ❌ |
+
+⚠️ **WARNING: Potential Over-correction Detected!**
+High NoAns accuracy but low HasAns F1 suggests the model is too conservative.
+
+---
+
+## dev_trial_tiny_202602071932
+**Timestamp:** 2026-02-07 19:32:43
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 50.00 |
+| **Overall F1** | 61.11 |
+| **NoAns Accuracy** | 100.00% (4/4) |
+| **HasAns F1** | 41.67 |
+| **HasAns EM** | 25.00 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+
+### Detailed Results
+
+| CSV Line | Question | Actual Answer | Model Prediction | Status |
+|----------|----------|---------------|------------------|--------|
+| 2 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 3 | What is the expression set called where three inte... | NO ANSWER | NO ANSWER | ✅ |
+| 4 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 5 | What are the Sky Q mini set top boxes never able t... | NO ANSWER | NO ANSWER | ✅ |
+| 6 | A problem set that that is hard for the expression... | NP-hard | NO ANSWER | ❌ |
+| 7 | When did Sky launch a TV advertising campaign targ... | September 2007 | 2007 | ❌ |
+| 8 | In what unit is the size of the input measured? | bits | NO ANSWER | ❌ |
+| 9 | What do encrypted broadcasts never require? | NO ANSWER | NO ANSWER | ✅ |
+| 10 | What are the two integer responses to a decision p... | 1 or 0 | 0 and 1. | ❌ |
+| 11 | The Los Angeles Rams are an example of what kind o... | NFL | Professional | ❌ |
+| 12 | What is the name of the desert near the border of ... | Mojave Desert | Mojave Desert | ✅ |
+| 13 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | NO ANSWER | ❌ |
+
+⚠️ **WARNING: Potential Over-correction Detected!**
+High NoAns accuracy but low HasAns F1 suggests the model is too conservative.
+
+---
+
+## dev_trial_tiny_202602071958
+**Timestamp:** 2026-02-07 19:58:16
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 50.00 |
+| **Overall F1** | 55.56 |
+| **NoAns Accuracy** | 100.00% (4/4) |
+| **HasAns F1** | 33.33 |
+| **HasAns EM** | 25.00 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+
+### Detailed Results
+
+| CSV Line | Question | Actual Answer | Model Prediction | Status |
+|----------|----------|---------------|------------------|--------|
+| 2 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 3 | What is the expression set called where three inte... | NO ANSWER | NO ANSWER | ✅ |
+| 4 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 5 | What are the Sky Q mini set top boxes never able t... | NO ANSWER | NO ANSWER | ✅ |
+| 6 | A problem set that that is hard for the expression... | NP-hard | NO ANSWER | ❌ |
+| 7 | When did Sky launch a TV advertising campaign targ... | September 2007 | 2007 | ❌ |
+| 8 | In what unit is the size of the input measured? | bits | NO ANSWER | ❌ |
+| 9 | What do encrypted broadcasts never require? | NO ANSWER | NO ANSWER | ✅ |
+| 10 | What are the two integer responses to a decision p... | 1 or 0 | NO ANSWER | ❌ |
+| 11 | The Los Angeles Rams are an example of what kind o... | NFL | Professional | ❌ |
+| 12 | What is the name of the desert near the border of ... | Mojave Desert | Mojave Desert | ✅ |
+| 13 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | NO ANSWER | ❌ |
+
+⚠️ **WARNING: Potential Over-correction Detected!**
+High NoAns accuracy but low HasAns F1 suggests the model is too conservative.
+
+---
+
+## dev_trial_tiny_202602072014
+**Timestamp:** 2026-02-07 20:14:52
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 50.00 |
+| **Overall F1** | 61.11 |
+| **NoAns Accuracy** | 100.00% (4/4) |
+| **HasAns F1** | 41.67 |
+| **HasAns EM** | 25.00 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+
+### Detailed Results
+
+| CSV Line | Question | Actual Answer | Model Prediction | Status |
+|----------|----------|---------------|------------------|--------|
+| 2 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 3 | What is the expression set called where three inte... | NO ANSWER | NO ANSWER | ✅ |
+| 4 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 5 | What are the Sky Q mini set top boxes never able t... | NO ANSWER | NO ANSWER | ✅ |
+| 6 | A problem set that that is hard for the expression... | NP-hard | NO ANSWER | ❌ |
+| 7 | When did Sky launch a TV advertising campaign targ... | September 2007 | 2007 | ❌ |
+| 8 | In what unit is the size of the input measured? | bits | NO ANSWER | ❌ |
+| 9 | What do encrypted broadcasts never require? | NO ANSWER | NO ANSWER | ✅ |
+| 10 | What are the two integer responses to a decision p... | 1 or 0 | 0 and 1. | ❌ |
+| 11 | The Los Angeles Rams are an example of what kind o... | NFL | Professional | ❌ |
+| 12 | What is the name of the desert near the border of ... | Mojave Desert | Mojave Desert | ✅ |
+| 13 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | NO ANSWER | ❌ |
+
+⚠️ **WARNING: Potential Over-correction Detected!**
+High NoAns accuracy but low HasAns F1 suggests the model is too conservative.
+
+---
+
+## dev_trial_tiny_202602072032
+**Timestamp:** 2026-02-07 20:32:19
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 50.00 |
+| **Overall F1** | 61.11 |
+| **NoAns Accuracy** | 100.00% (4/4) |
+| **HasAns F1** | 41.67 |
+| **HasAns EM** | 25.00 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+| **Binary Classification** | 66.67% (8/12) |
+
+### Detailed Results
+
+| CSV Line | Question | Actual Answer | Model Prediction | Status |
+|----------|----------|---------------|------------------|--------|
+| 2 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 3 | What is the expression set called where three inte... | NO ANSWER | NO ANSWER | ✅ |
+| 4 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 5 | What are the Sky Q mini set top boxes never able t... | NO ANSWER | NO ANSWER | ✅ |
+| 6 | A problem set that that is hard for the expression... | NP-hard | NO ANSWER | ❌ |
+| 7 | When did Sky launch a TV advertising campaign targ... | September 2007 | 2007 | ❌ |
+| 8 | In what unit is the size of the input measured? | bits | NO ANSWER | ❌ |
+| 9 | What do encrypted broadcasts never require? | NO ANSWER | NO ANSWER | ✅ |
+| 10 | What are the two integer responses to a decision p... | 1 or 0 | 1 and 0 | ❌ |
+| 11 | The Los Angeles Rams are an example of what kind o... | NFL | Professional | ❌ |
+| 12 | What is the name of the desert near the border of ... | Mojave Desert | Mojave Desert | ✅ |
+| 13 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | NO ANSWER | ❌ |
+
+**correct binary classification:** 66.67% (8/12)
+
+⚠️ **WARNING: Potential Over-correction Detected!**
+High NoAns accuracy but low HasAns F1 suggests the model is too conservative.
+
+---
+
+## dev_trial_tiny_202602072124
+**Timestamp:** 2026-02-07 21:24:43
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 50.00 |
+| **Overall F1** | 61.11 |
+| **NoAns Accuracy** | 100.00% (4/4) |
+| **HasAns F1** | 41.67 |
+| **HasAns EM** | 25.00 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+| **Binary Classification** | 66.67% (8/12) |
+
+### Detailed Results
+
+| Index | Question | Actual Answer | Model Prediction | Status |
+|-------|----------|---------------|------------------|--------|
+| 0 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 1 | What is the expression set called where three inte... | NO ANSWER | NO ANSWER | ✅ |
+| 2 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 3 | What are the Sky Q mini set top boxes never able t... | NO ANSWER | NO ANSWER | ✅ |
+| 4 | A problem set that that is hard for the expression... | NP-hard | NO ANSWER | ❌ |
+| 5 | When did Sky launch a TV advertising campaign targ... | September 2007 | 2007 | ❌ |
+| 6 | In what unit is the size of the input measured? | bits | NO ANSWER | ❌ |
+| 7 | What do encrypted broadcasts never require? | NO ANSWER | NO ANSWER | ✅ |
+| 8 | What are the two integer responses to a decision p... | 1 or 0 | 1 and 0 | ❌ |
+| 9 | The Los Angeles Rams are an example of what kind o... | NFL | Professional | ❌ |
+| 10 | What is the name of the desert near the border of ... | Mojave Desert | Mojave Desert | ✅ |
+| 11 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | NO ANSWER | ❌ |
+
+**correct binary classification:** 66.67% (8/12)
+
+⚠️ **WARNING: Potential Over-correction Detected!**
+High NoAns accuracy but low HasAns F1 suggests the model is too conservative.
+
+---
+
+## dev_trial_tiny_202602072125
+**Timestamp:** 2026-02-07 21:25:49
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 50.00 |
+| **Overall F1** | 61.11 |
+| **NoAns Accuracy** | 100.00% (4/4) |
+| **HasAns F1** | 41.67 |
+| **HasAns EM** | 25.00 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+| **Binary Classification** | 66.67% (8/12) |
+
+### Detailed Results
+
+| Index | Question | Actual Answer | Model Prediction | Status |
+|-------|----------|---------------|------------------|--------|
+| 0 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 1 | What is the expression set called where three inte... | NO ANSWER | NO ANSWER | ✅ |
+| 2 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 3 | What are the Sky Q mini set top boxes never able t... | NO ANSWER | NO ANSWER | ✅ |
+| 4 | A problem set that that is hard for the expression... | NP-hard | NO ANSWER | ❌ |
+| 5 | When did Sky launch a TV advertising campaign targ... | September 2007 | 2007 | ❌ |
+| 6 | In what unit is the size of the input measured? | bits | NO ANSWER | ❌ |
+| 7 | What do encrypted broadcasts never require? | NO ANSWER | NO ANSWER | ✅ |
+| 8 | What are the two integer responses to a decision p... | 1 or 0 | 0 and 1. | ❌ |
+| 9 | The Los Angeles Rams are an example of what kind o... | NFL | Professional | ❌ |
+| 10 | What is the name of the desert near the border of ... | Mojave Desert | Mojave Desert | ✅ |
+| 11 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | NO ANSWER | ❌ |
+
+**correct binary classification:** 66.67% (8/12)
+
+⚠️ **WARNING: Potential Over-correction Detected!**
+High NoAns accuracy but low HasAns F1 suggests the model is too conservative.
+
+---
+
+## dev_trial_tiny_202602072140
+**Timestamp:** 2026-02-07 21:40:28
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 41.67 |
+| **Overall F1** | 50.23 |
+| **NoAns Accuracy** | 50.00% (2/4) |
+| **HasAns F1** | 50.35 |
+| **HasAns EM** | 37.50 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+| **Binary Classification** | 75.00% (9/12) |
+
+### Detailed Results
+
+| Index | Question | Actual Answer | Model Prediction | Status |
+|-------|----------|---------------|------------------|--------|
+| 0 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 1 | What is the expression set called where three inte... | NO ANSWER | The set of triples (a, b, c) such that the relation a × b = c holds is the set of | ❌ |
+| 2 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 3 | What are the Sky Q mini set top boxes never able t... |  ANSWER | NO ANSWER | ✅ |
+| 4 | A problem set that that is hard for the expression... | NP-hard | The set of proNOblems that are hard for NP can be commonly be used to be the set of NP-hard problems. | ❌ |
+| 5 | When did Sky launch a TV advertising campaign targ... | September 2007 | September 2007 | ✅ |
+| 6 | In what unit is the size of the input measured? | bits | The size of the input is usually taken to be the size of the input in bits. | ❌ |
+| 7 | What do encrypted broadcasts never require? | NO ANSWER | A monthly subscription. | ❌ |
+| 8 | What are the two integer responses to a decision p... | 1 or 0 | YES, the answer is 0 and 1. | ❌ |
+| 9 | The Los Angeles Rams are an example of what kind o... | NFL | NFL (Los Angeles Rams, San Diego Chargers); | ❌ |
+| 10 | What is the name of the desert near the border of ... | Mojave Desert | The Mojave Desert. | ❌ |
+| 11 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | The Tehachapi Mountains. | ❌ |
+
+**correct binary classification:** 75.00% (9/12)
+
+---
+
+## dev_trial_tiny_202602131702
+**Timestamp:** 2026-02-13 17:03:02
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 25.00 |
+| **Overall F1** | 37.50 |
+| **NoAns Accuracy** | 25.00% (1/4) |
+| **HasAns F1** | 43.75 |
+| **HasAns EM** | 25.00 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+| **Binary Classification** | 66.67% (8/12) |
+
+### Detailed Results
+
+| Index | Question | Actual Answer | Model Prediction | Status |
+|-------|----------|---------------|------------------|--------|
+| 0 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 1 | What is the expression set called where three inte... | NO ANSWER | set of triples (a, b, c) such that the relation a × b = c holds is the set of | ❌ |
+| 2 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 3 | What are the Sky Q mini set top boxes never able t... | NO ANSWER | Sky Q Mini set top boxes connect to the Sky Q Silver set top boxes with a Wi-Fi or Power-line connection rather | ❌ |
+| 4 | A problem set that that is hard for the expression... | NP-hard | set of problems that are hard for NP can be commonly be used to be the set of NP-hard problems. | ❌ |
+| 5 | When did Sky launch a TV advertising campaign targ... | September 2007 | 2007 | ❌ |
+| 6 | In what unit is the size of the input measured? | bits | size of the input is usually taken to be the size of the input in bits. | ❌ |
+| 7 | What do encrypted broadcasts never require? | NO ANSWER | monthly subscription. | ❌ |
+| 8 | What are the two integer responses to a decision p... | 1 or 0 | answer is 1 and 0. | ❌ |
+| 9 | The Los Angeles Rams are an example of what kind o... | NFL | (Los Angeles Rams, San Diego Chargers); | ❌ |
+| 10 | What is the name of the desert near the border of ... | Mojave Desert | Mojave Desert. | ❌ |
+| 11 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | Tehachapi Mountains. | ❌ |
+
+**correct binary classification:** 66.67% (8/12)
+
+---
+
+## dev_trial_tiny_202602131724
+**Timestamp:** 2026-02-13 17:24:23
+
+**Dataset:** DataFrame
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 58.33 |
+| **Overall F1** | 59.52 |
+| **NoAns Accuracy** | 75.00% (3/4) |
+| **HasAns F1** | 51.79 |
+| **HasAns EM** | 50.00 |
+| **Total Questions** | 12 (HasAns: 8, NoAns: 4) |
+| **Binary Classification** | 66.67% (8/12) |
+
+### Detailed Results
+
+| Index | Question | Actual Answer | Model Prediction | Status |
+|-------|----------|---------------|------------------|--------|
+| 0 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 1 | What is the expression set called where three inte... | NO ANSWER | The set of triples (a, b, c) such that the relation a × b = c holds. | ❌ |
+| 2 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 3 | What are the Sky Q mini set top boxes never able t... | NO ANSWER | NO ANSWER | ✅ |
+| 4 | A problem set that that is hard for the expression... | NP-hard | NO ANSWER | ❌ |
+| 5 | When did Sky launch a TV advertising campaign targ... | September 2007 | September 2007 | ✅ |
+| 6 | In what unit is the size of the input measured? | bits | The size of the input is usually taken to be the size of the input in bits. | ❌ |
+| 7 | What do encrypted broadcasts never require? | NO ANSWER | NO ANSWER | ✅ |
+| 8 | What are the two integer responses to a decision p... | 1 or 0 | NO ANSWER | ❌ |
+| 9 | The Los Angeles Rams are an example of what kind o... | NFL | Professional | ❌ |
+| 10 | What is the name of the desert near the border of ... | Mojave Desert | The Mojave Desert. | ❌ |
+| 11 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | The Tehachapi Mountains. | ❌ |
+
+**correct binary classification:** 66.67% (8/12)
+
+---
+
+## qa_bench_50_202602131800
+**Timestamp:** 2026-02-13 18:00:38
+
+**Dataset:** DataFrame
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 48.00 |
+| **Overall F1** | 55.00 |
+| **NoAns Accuracy** | 60.00% (12/20) |
+| **HasAns F1** | 51.66 |
+| **HasAns EM** | 40.00 |
+| **Total Questions** | 50 (HasAns: 30, NoAns: 20) |
+| **Binary Classification** | 70.00% (35/50) |
+
+### Detailed Results
+
+| Index | Question | Actual Answer | Model Prediction | Status |
+|-------|----------|---------------|------------------|--------|
+| 0 | what other digital TV service took Sky UK Limited'... | Freeview | Freeview | ✅ |
+| 1 | What states that only problems that cannot be solv... | NO ANSWER | The Cobham–Edmonds thesis. | ❌ |
+| 2 | What are the Sky Q mini set top boxes never able t... | NO ANSWER | NO ANSWER | ✅ |
+| 3 | What is a typical type of computational problem wh... | NO ANSWER | NO ANSWER | ✅ |
+| 4 | Is a problem instance typically characterized as a... | concrete | According to the given problem, a problem instance is referred to as a " rather concrete utterance" | ❌ |
+| 5 | What business districts are within the downtown Lo... | NO ANSWER | The Downtown Los Angeles central business district as well as those lining the Wilshire Boulevard Miracle Mile including Century City, Westwood and | ❌ |
+| 6 | Who was the chief executive officer when the servi... | Sam Chisholm | Sam Chisholm | ✅ |
+| 7 | What was the name of Bohemond's nephew? | Tancred | Tancred. | ❌ |
+| 8 | When were basic channels first introduced by BSkyB... | NO ANSWER | NO ANSWER | ✅ |
+| 9 | If P = NP is unsolved, and reduction is applied to... | there is no known polynomial-time solution | If P = NP is not solved, and a known NP-complete problem Π2 is reduced to Π1, then no polynomial | ❌ |
+| 10 | What answer denotes that an algorithm has accepted... | yes | yes | ✅ |
+| 11 | What are the two integer responses to a decision p... | 1 or 0 | NO ANSWER | ❌ |
+| 12 | What complexity class do incompatible problems of ... | NO ANSWER | co-NP | ❌ |
+| 13 | In what expression can one expect to find DTIME(n) | DTIME(n2) | NO ANSWER | ❌ |
+| 14 | What is the name of the desert near the border of ... | Mojave Desert | M Mojave Desert | ❌ |
+| 15 | Other than Point Conception, what landmark is used... | Tehachapi Mountains | The Tehachapi Mountains. | ❌ |
+| 16 | What are the least well known complexity resources... | NO ANSWER | NO ANSWER | ✅ |
+| 17 | What year did BSkyB and Virgin Media have an agree... | NO ANSWER | NO ANSWER | ✅ |
+| 18 | What channels were always available on the network... | NO ANSWER | NO ANSWER | ✅ |
+| 19 | Is the output of a functional problem typically ch... | complex | NO ANSWER | ❌ |
+| 20 | Resources are constrained by hierarchy theorems to... | a proper hierarchy on the classes defined | resources. | ❌ |
+| 21 | What kind of economy did northern California start... | tech-oriented | A tech-oriented economy. | ❌ |
+| 22 | What type of landscapes other than geologic and na... | topographic | NO ANSWER | ❌ |
+| 23 | What company was never involved with NDS? | NO ANSWER | NO ANSWER | ✅ |
+| 24 | What is the expression set called where three inte... | NO ANSWER | The set of triples (a, b, c) such that the relation a × b = c holds. | ❌ |
+| 25 | What provides a solution to a list of integers pro... | deterministic sorting algorithm quicksort | NO ANSWER | ❌ |
+| 26 | What year were farmlands turned into suburbs? | NO ANSWER | NO ANSWER | ✅ |
+| 27 | What is the most commonplace model utilized in com... | the Turing machine | The Turing machine is the most commonly used model in complexity theory. | ❌ |
+| 28 | What do encrypted broadcasts never require? | NO ANSWER | NO ANSWER | ✅ |
+| 29 | A problem set that that is hard for the expression... | NP-hard | NO ANSWER | ❌ |
+| 30 | Within the 30 days how many digiboxes had been sol... | 100,000 | Within 30 days, over 100,000 digiboxes had been sold. | ❌ |
+| 31 | What satellite was used when Sky digital was launc... | Astra 2A | Astra 2A | ✅ |
+| 32 | Who began a program of church reform in the 1100s | NO ANSWER | The dukes of Normandy. | ❌ |
+| 33 | In what unit is the size of the input measured? | bits | The size of the input is usually taken to be the size of the input in bits. | ❌ |
+| 34 | The two listed teams play for which NCAA group? | Division I | The Pac-12 Conference. | ❌ |
+| 35 | When did Sky launch a TV advertising campaign targ... | September 2007 | September 2007 | ✅ |
+| 36 | What are four examples of problems believed to be ... | NO ANSWER | The graph isomorphism problem, the discrete logarithm problem and the integer factorization problem are examples of problems believed to be | ❌ |
+| 37 | What type of groups divides California into only n... | NO ANSWER | AAA Auto Clubs. | ❌ |
+| 38 | What year was Setanta Sports awarded Primeier Leag... | 2006 | 2006 | ✅ |
+| 39 | What war occured in the 1oth century? | NO ANSWER | NO ANSWER | ✅ |
+| 40 | AC and NC are complexity classes typically associa... | Boolean | Boolean | ✅ |
+| 41 | Who used the church to unify themselves? | dukes | The dukes of Normandy. | ❌ |
+| 42 | What encoding decision needs to be made in order t... | how graphs are encoded as binary strings | NO ANSWER | ❌ |
+| 43 | What computational problem is not commonly associa... | NO ANSWER | NO ANSWER | ✅ |
+| 44 | What famous snowbaorder lives in southern Californ... | Shaun White | Shaun White | ✅ |
+| 45 | The Los Angeles Rams are an example of what kind o... | NFL | NFL | ✅ |
+| 46 | What isn't required by customers to get Sky+ funct... | NO ANSWER | A monthly fee. | ❌ |
+| 47 | How many campuses does the California State Univer... | 12 | 12 | ✅ |
+| 48 | What is an example of a problem that rests within ... | Boolean satisfiability problem | The Boolean satisfiability problem, the Hamiltonian path problem, and the vertex cover problem are the problems that are known to also | ❌ |
+| 49 | What company has veto over the presence of channel... | NO ANSWER | NO ANSWER | ✅ |
+
+**correct binary classification:** 70.00% (35/50)
+
+---
+
+## official_50_sample_202602132058
+**Timestamp:** 2026-02-13 20:58:20
+
+**Dataset:** DataFrame
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 44.00 |
+| **Overall F1** | 49.49 |
+| **NoAns Accuracy** | 56.52% (13/23) |
+| **HasAns F1** | 43.50 |
+| **HasAns EM** | 33.33 |
+| **Total Questions** | 50 (HasAns: 27, NoAns: 23) |
+| **Binary Classification** | 66.00% (33/50) |
+
+### Detailed Results
+
+| Index | Question | Actual Answer | Model Prediction | Status |
+|-------|----------|---------------|------------------|--------|
+| 0 | Within 30 days how many digiboxes had been discard... | NO ANSWER | NO ANSWER | ✅ |
+| 1 | What isn't required by customers to get Sky+ funct... | NO ANSWER | A monthly fee. | ❌ |
+| 2 | What thesis specifies that a trinomial relationshi... | NO ANSWER | Cobham-Edmonds thesis | ❌ |
+| 3 | What company owns ACB? | NO ANSWER | The Walt Disney Company | ❌ |
+| 4 | Southern California's distinctive regions are divi... | economically | polit economically | ❌ |
+| 5 | Who was given the highlights of most of the matche... | BBC | The BBC was given the highlights of most of the matches. | ❌ |
+| 6 | Who was Richard's fiancee? | Berengaria | Berengaria | ✅ |
+| 7 | What is the expression used to identify any given ... | DTIME(f(n)) | DTTIME(f(n)). | ❌ |
+| 8 | What are three examples of complexity classes asso... | BPP, ZPP and RP | BPP, ZPP, and RP. | ❌ |
+| 9 | What city has a population of 1.7 million people? | NO ANSWER | NO ANSWER | ✅ |
+| 10 | Who proved that these exist practical relevant pro... | NO ANSWER | NO ANSWER | ✅ |
+| 11 | What is the name of the professional skateboarder ... | Tony Hawk | Tony Hawk | ✅ |
+| 12 | What kind of university is the California Institut... | private | The California Institute of Technology is a private (NO, the California Institute of Technology is private, the California Institute of Technology is | ❌ |
+| 13 | A complexity resource can also be described as wha... | computational resource | NO ANSWER | ❌ |
+| 14 | Point Conception is an example of a landmark among... | northern | Point Conception is a boundary of southern California. | ❌ |
+| 15 | What precedes the period of Anglo-Saxon architectu... | NO ANSWER | NO ANSWER | ✅ |
+| 16 | Sky UK Limited is now known by what name? | NO ANSWER | Sky UK Limited (formerly British Sky Broadcasting or BSkyB) | ❌ |
+| 17 | What is  interested in how algorithms scale with a... | NO ANSWER | NO ANSWER | ✅ |
+| 18 | Where did the Normans carve out a principality bef... | NO ANSWER | NO ANSWER | ✅ |
+| 19 | What monastery did the Saint-Evroul monks establis... | Latin monastery at Sant'Eufemia. | S Sant'Eufemia | ❌ |
+| 20 | What year did Richards fleet avoid a storm? | NO ANSWER | 1191 | ❌ |
+| 21 | What year did Dick Sullivan publish a study on rud... | NO ANSWER | NO ANSWER | ✅ |
+| 22 | IP and AM are most commonly defined by what type o... | Interactive | Interactive proof systems. | ❌ |
+| 23 | What are the other four important complexity class... | NO ANSWER | The BPP, ZPP, RP, AC, NC, BQP, and QMA. | ❌ |
+| 24 | What year did BSkyB and Microsoft announce their s... | 2013 | 2013 | ✅ |
+| 25 | How many California University campuses are there? | NO ANSWER | There is a 5 University of California campuses and 12 California State University campuses. | ❌ |
+| 26 | How many customaries does Norman customary law hav... | two | NO ANSWER | ❌ |
+| 27 | What are two fields of theoretical computer scienc... | NO ANSWER | NO ANSWER | ✅ |
+| 28 | What is the metric they use to determine how busy ... | passenger volume | NO ANSWER | ❌ |
+| 29 | What culture's arrival in Scotland is know as the ... | Norman | Normans | ❌ |
+| 30 | What company was formed by the merger of Sky Telev... | BSkyB | BSkyB | ✅ |
+| 31 | Southern California's economy can be described as ... | diverse | NO ANSWER | ❌ |
+| 32 | In the definition based off the mountain range, wh... | southern | The desert portions of north Los Angeles County would be included in the southern California region. | ❌ |
+| 33 | Where is Redland University located? | NO ANSWER | NO ANSWER | ✅ |
+| 34 | What is the integer practice problem? | NO ANSWER | NO ANSWER | ✅ |
+| 35 | What main business district is in downtown Los Ang... | NO ANSWER | D Downtown Los Angeles central business district | ❌ |
+| 36 | What channel lost advertising revenue due to their... | NO ANSWER | NO ANSWER | ✅ |
+| 37 | What is the softest problem in C? | NO ANSWER | NO ANSWER | ✅ |
+| 38 | What does disconnecting different Sky Q boxes enab... | NO ANSWER | They share recordings and other media. | ❌ |
+| 39 | A specific algorithm demonstrating T(n) represents... | upper bound | NO ANSWER | ❌ |
+| 40 | Complexity theory classifies problems based on wha... | difficulty | problems based on their difficulty | ❌ |
+| 41 | what was NTL Telewest re-branded to in 2007? | Virgin Media | Virgin Media | ✅ |
+| 42 | What counties near Kern-Bakersfield County was pop... | NO ANSWER | Bakersfield-Kern County, Santa Maria and San Luis Obispo areas. | ❌ |
+| 43 | What is the population of the second largest city ... | 1.3 million | 1.3 million | ✅ |
+| 44 | Case complexities provide three likelihoods of wha... | inputs | NO ANSWER | ❌ |
+| 45 | What kind of universities is the region famous for... | research | public and private institutions | ❌ |
+| 46 | What is a growing sport in southern California? | Rugby | Rugby | ✅ |
+| 47 | What is a typical type of computational problem wh... | NO ANSWER | NO ANSWER | ✅ |
+| 48 | What is an example of a measurement within a compl... | computation time | NO ANSWER | ❌ |
+| 49 | The legislation allowed California to be admitted ... | free | free state | ❌ |
+
+**correct binary classification:** 66.00% (33/50)
+
+---
+
+## official_50_sample_202602132134
+**Timestamp:** 2026-02-13 21:34:13
+
+**Dataset:** dev-data/official_50_sample-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 46.00 |
+| **Overall F1** | 52.75 |
+| **NoAns Accuracy** | 60.87% (14/23) |
+| **HasAns F1** | 45.83 |
+| **HasAns EM** | 33.33 |
+| **Total Questions** | 50 (HasAns: 27, NoAns: 23) |
+| **Binary Classification** | 68.00% (34/50) |
+
+### Detailed Results
+
+| Index | Question | Actual Answer | Model Prediction | Status |
+|-------|----------|---------------|------------------|--------|
+| 0 | Within 30 days how many digiboxes had been discard... | NO ANSWER | NO ANSWER | ✅ |
+| 1 | What isn't required by customers to get Sky+ funct... | NO ANSWER | A monthly fee. | ❌ |
+| 2 | What thesis specifies that a trinomial relationshi... | NO ANSWER | The Cobham-Edmonds thesis states that "the time complexities in any two reasonable and general models of computation are polynomially | ❌ |
+| 3 | What company owns ACB? | NO ANSWER | The Walt Disney Company | ❌ |
+| 4 | Southern California's distinctive regions are divi... | economically | polit economically | ❌ |
+| 5 | Who was given the highlights of most of the matche... | BBC | The BBC was given the highlights of most of the matches. | ❌ |
+| 6 | Who was Richard's fiancee? | Berengaria | Berengaria | ✅ |
+| 7 | What is the expression used to identify any given ... | DTIME(f(n)) | The answer is DTIME(f(n)). | ❌ |
+| 8 | What are three examples of complexity classes asso... | BPP, ZPP and RP | BPP, ZPP, and RP. | ❌ |
+| 9 | What city has a population of 1.7 million people? | NO ANSWER | NO ANSWER | ✅ |
+| 10 | Who proved that these exist practical relevant pro... | NO ANSWER | NO ANSWER | ✅ |
+| 11 | What is the name of the professional skateboarder ... | Tony Hawk | Tony Hawk, Rob Machado, Tim Curran, Bobby Martinez, Pat O'Connell, Dane Reynolds, and Chris Ward | ❌ |
+| 12 | What kind of university is the California Institut... | private | Private | ✅ |
+| 13 | A complexity resource can also be described as wha... | computational resource | NO ANSWER | ❌ |
+| 14 | Point Conception is an example of a landmark among... | northern | Point Conception is a boundary of southern California. | ❌ |
+| 15 | What precedes the period of Anglo-Saxon architectu... | NO ANSWER | NO ANSWER | ✅ |
+| 16 | Sky UK Limited is now known by what name? | NO ANSWER | NO ANSWER | ✅ |
+| 17 | What is  interested in how algorithms scale with a... | NO ANSWER | NO ANSWER | ✅ |
+| 18 | Where did the Normans carve out a principality bef... | NO ANSWER | NO ANSWER | ✅ |
+| 19 | What monastery did the Saint-Evroul monks establis... | Latin monastery at Sant'Eufemia. | S Sant'Eufemia | ❌ |
+| 20 | What year did Richards fleet avoid a storm? | NO ANSWER | The fleet left Messina in April 1191. | ❌ |
+| 21 | What year did Dick Sullivan publish a study on rud... | NO ANSWER | NO ANSWER | ✅ |
+| 22 | IP and AM are most commonly defined by what type o... | Interactive | Interactive proof systems. | ❌ |
+| 23 | What are the other four important complexity class... | NO ANSWER | The BPP, ZPP, RP, AC, NC, BQP, and QMA. | ❌ |
+| 24 | What year did BSkyB and Microsoft announce their s... | 2013 | 2013 | ✅ |
+| 25 | How many California University campuses are there? | NO ANSWER | There is a 5 University of California campuses and 12 California State University campuses. | ❌ |
+| 26 | How many customaries does Norman customary law hav... | two | NO ANSWER | ❌ |
+| 27 | What are two fields of theoretical computer scienc... | NO ANSWER | NO ANSWER | ✅ |
+| 28 | What is the metric they use to determine how busy ... | passenger volume | NO ANSWER | ❌ |
+| 29 | What culture's arrival in Scotland is know as the ... | Norman | Normans | ❌ |
+| 30 | What company was formed by the merger of Sky Telev... | BSkyB | BSkyB | ✅ |
+| 31 | Southern California's economy can be described as ... | diverse | NO ANSWER | ❌ |
+| 32 | In the definition based off the mountain range, wh... | southern | The desert portions of north Los Angeles County would be included in the southern California region. | ❌ |
+| 33 | Where is Redland University located? | NO ANSWER | NO ANSWER | ✅ |
+| 34 | What is the integer practice problem? | NO ANSWER | NO ANSWER | ✅ |
+| 35 | What main business district is in downtown Los Ang... | NO ANSWER | The Downtown Los Angeles central business district. | ❌ |
+| 36 | What channel lost advertising revenue due to their... | NO ANSWER | NO ANSWER | ✅ |
+| 37 | What is the softest problem in C? | NO ANSWER | NO ANSWER | ✅ |
+| 38 | What does disconnecting different Sky Q boxes enab... | NO ANSWER | They share recordings and other media. | ❌ |
+| 39 | A specific algorithm demonstrating T(n) represents... | upper bound | NO ANSWER | ❌ |
+| 40 | Complexity theory classifies problems based on wha... | difficulty | problems based on their difficulty | ❌ |
+| 41 | what was NTL Telewest re-branded to in 2007? | Virgin Media | Virgin Media | ✅ |
+| 42 | What counties near Kern-Bakersfield County was pop... | NO ANSWER | Bakersfield-Kern County, Santa Maria and San Luis Obispo areas. | ❌ |
+| 43 | What is the population of the second largest city ... | 1.3 million | 1.3 million | ✅ |
+| 44 | Case complexities provide three likelihoods of wha... | inputs | NO ANSWER | ❌ |
+| 45 | What kind of universities is the region famous for... | research | The region is the Tech Coast and is the region is the Tech Coast, and is the region is the Tech Coast, and | ❌ |
+| 46 | What is a growing sport in southern California? | Rugby | Rugby | ✅ |
+| 47 | What is a typical type of computational problem wh... | NO ANSWER | NO ANSWER | ✅ |
+| 48 | What is an example of a measurement within a compl... | computation time | NO ANSWER | ❌ |
+| 49 | The legislation allowed California to be admitted ... | free | free state | ❌ |
+
+**correct binary classification:** 68.00% (34/50)
+
+---
+
+## official_50_sample_202602150036
+**Timestamp:** 2026-02-15 00:36:13
+
+**Parameters:** prob_threshold=0.05, bias_value=20.0
+
+**Dataset:** dev-data/official_50_sample-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 52.00 |
+| **Overall F1** | 57.38 |
+| **NoAns Accuracy** | 47.83% (11/23) |
+| **HasAns F1** | 65.52 |
+| **HasAns EM** | 55.56 |
+| **Total Questions** | 50 (HasAns: 27, NoAns: 23) |
+| **Binary Classification** | 74.00% (37/50) |
+
+### Detailed Results
+
+| Index | Question | Actual Answer | Model Prediction | Status |
+|-------|----------|---------------|------------------|--------|
+| 0 | Within 30 days how many digiboxes had been discard... | NO ANSWER | NO ANSWER | ✅ |
+| 1 | What isn't required by customers to get Sky+ funct... | NO ANSWER | a monthly fee | ❌ |
+| 2 | What thesis specifies that a trinomial relationshi... | NO ANSWER | Cobham-Edmonds thesis | ❌ |
+| 3 | What company owns ACB? | NO ANSWER | The Walt Disney Company | ❌ |
+| 4 | Southern California's distinctive regions are divi... | economically | e economically | ❌ |
+| 5 | Who was given the highlights of most of the matche... | BBC | The BBC | ❌ |
+| 6 | Who was Richard's fiancee? | Berengaria | Berengaria | ✅ |
+| 7 | What is the expression used to identify any given ... | DTIME(f(n)) | DTIME(f(n)). | ❌ |
+| 8 | What are three examples of complexity classes asso... | BPP, ZPP and RP | BPP, ZPP, RP | ❌ |
+| 9 | What city has a population of 1.7 million people? | NO ANSWER | NO ANSWER | ✅ |
+| 10 | Who proved that these exist practical relevant pro... | NO ANSWER | NO ANSWER | ✅ |
+| 11 | What is the name of the professional skateboarder ... | Tony Hawk | Tony Hawk | ✅ |
+| 12 | What kind of university is the California Institut... | private | Private | ✅ |
+| 13 | A complexity resource can also be described as wha... | computational resource | communication | ❌ |
+| 14 | Point Conception is an example of a landmark among... | northern | Point Conception | ❌ |
+| 15 | What precedes the period of Anglo-Saxon architectu... | NO ANSWER | NO ANSWER | ✅ |
+| 16 | Sky UK Limited is now known by what name? | NO ANSWER | Sky UK Limited (formerly British Sky Broadcasting or BSkyB) | ❌ |
+| 17 | What is  interested in how algorithms scale with a... | NO ANSWER | NO ANSWER | ✅ |
+| 18 | Where did the Normans carve out a principality bef... | NO ANSWER | Antioch | ❌ |
+| 19 | What monastery did the Saint-Evroul monks establis... | Latin monastery at Sant'Eufemia. | Sant'Eufemia | ❌ |
+| 20 | What year did Richards fleet avoid a storm? | NO ANSWER | 1191 | ❌ |
+| 21 | What year did Dick Sullivan publish a study on rud... | NO ANSWER | NO ANSWER | ✅ |
+| 22 | IP and AM are most commonly defined by what type o... | Interactive | Interactive proof systems. | ❌ |
+| 23 | What are the other four important complexity class... | NO ANSWER | BPP, ZPP, RP, AC, NC, BQP, QMA | ❌ |
+| 24 | What year did BSkyB and Microsoft announce their s... | 2013 | 2013 | ✅ |
+| 25 | How many California University campuses are there? | NO ANSWER | 19 | ❌ |
+| 26 | How many customaries does Norman customary law hav... | two | 2 | ❌ |
+| 27 | What are two fields of theoretical computer scienc... | NO ANSWER | NO ANSWER | ✅ |
+| 28 | What is the metric they use to determine how busy ... | passenger volume | passenger volume | ✅ |
+| 29 | What culture's arrival in Scotland is know as the ... | Norman | Normans | ❌ |
+| 30 | What company was formed by the merger of Sky Telev... | BSkyB | BSkyB | ✅ |
+| 31 | Southern California's economy can be described as ... | diverse | heavily dependent | ❌ |
+| 32 | In the definition based off the mountain range, wh... | southern | the southern | ❌ |
+| 33 | Where is Redland University located? | NO ANSWER | NO ANSWER | ✅ |
+| 34 | What is the integer practice problem? | NO ANSWER | NO ANSWER | ✅ |
+| 35 | What main business district is in downtown Los Ang... | NO ANSWER | D Downtown Los Angeles | ❌ |
+| 36 | What channel lost advertising revenue due to their... | NO ANSWER | NO ANSWER | ✅ |
+| 37 | What is the softest problem in C? | NO ANSWER | NO ANSWER | ✅ |
+| 38 | What does disconnecting different Sky Q boxes enab... | NO ANSWER | share recordings and other media | ❌ |
+| 39 | A specific algorithm demonstrating T(n) represents... | upper bound | Upper bound | ✅ |
+| 40 | Complexity theory classifies problems based on wha... | difficulty | their difficulty | ❌ |
+| 41 | what was NTL Telewest re-branded to in 2007? | Virgin Media | Virgin Media | ✅ |
+| 42 | What counties near Kern-Bakersfield County was pop... | NO ANSWER | Bakersfield-Kern County, Santa Maria and San Luis Obispo areas. | ❌ |
+| 43 | What is the population of the second largest city ... | 1.3 million | 1.3 million | ✅ |
+| 44 | Case complexities provide three likelihoods of wha... | inputs | time | ❌ |
+| 45 | What kind of universities is the region famous for... | research | Public and private institutions | ❌ |
+| 46 | What is a growing sport in southern California? | Rugby | Rugby | ✅ |
+| 47 | What is a typical type of computational problem wh... | NO ANSWER | Decision problem | ❌ |
+| 48 | What is an example of a measurement within a compl... | computation time | NO ANSWER | ❌ |
+| 49 | The legislation allowed California to be admitted ... | free | free state | ❌ |
+
+**correct binary classification:** 74.00% (37/50)
+
+---
+

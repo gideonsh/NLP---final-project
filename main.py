@@ -23,7 +23,7 @@ torch.set_num_threads(os.cpu_count()-2) # Use all your power
 final_answer_column = "final_answer"
 
 
-def analyze_performance(results_file, trial_name=None, log_file='dev-data/trials_log.md'):
+def analyze_performance(results_file, trial_name=None, log_file='dev-data/trials_log.md', prob_threshold=None, bias_value=None):
     """
     Analyze performance of a SQuAD 2.0 QA trial with detailed metrics breakdown.
     """
@@ -109,6 +109,8 @@ def analyze_performance(results_file, trial_name=None, log_file='dev-data/trials
     with open(log_file, 'a', encoding='utf-8') as f:
         f.write(f"## {trial_name}\n")
         f.write(f"**Timestamp:** {timestamp}\n\n")
+        if prob_threshold is not None and bias_value is not None:
+            f.write(f"**Parameters:** prob_threshold={prob_threshold}, bias_value={bias_value}\n\n")
         f.write(f"**Dataset:** {results_file if isinstance(results_file, str) else 'DataFrame'}\n\n")
         f.write("### Metrics\n\n")
         f.write("| Metric | Value |\n")
@@ -184,6 +186,15 @@ def analyze_performance(results_file, trial_name=None, log_file='dev-data/trials
         print(f"   High NoAns accuracy but low HasAns F1 suggests the model is too conservative.")
     
     print(f"{'='*60}\n")
+    
+    # Print detailed evaluate_results metrics
+    if isinstance(results_file, str):
+        eval_out = evaluate_results(results_file, final_answer_column=final_answer_column)
+        eval_out_list = [str((k, round(v, 3))) for (k, v) in eval_out.items()]
+        print("Detailed Metrics:")
+        print('\n'.join(eval_out_list))
+        print(f"{'='*60}\n")
+
     print(f"Results appended to: {log_file}\n")
     
     return metrics
@@ -211,11 +222,10 @@ class SQuADLogitBiasProcessor(LogitsProcessor):
         
         return scores
 
-def squad_qa(data_filename):
+def squad_qa(data_filename, prob_threshold=0.05, bias_value=10.0):
     df = pd.read_csv(data_filename)
     no_token_id = tokenizer.convert_tokens_to_ids("NO")
     
-    prob_threshold = 0.05 
     final_answers = []
 
     for idx, row in df.iterrows():
@@ -264,7 +274,7 @@ def squad_qa(data_filename):
         else:
             # --- STAGE 3: Resumed Grounded Generation ---
             valid_ids = list(set(content_ids + [no_token_id, tokenizer.eos_token_id]))
-            processors = LogitsProcessorList([SQuADLogitBiasProcessor(valid_ids, bias_value=15.0)])
+            processors = LogitsProcessorList([SQuADLogitBiasProcessor(valid_ids, bias_value=bias_value)])
 
             # FIX: Create an attention mask for the combined sequence (input + first generated token)
             # gate_res.sequences contains the prompt + the 1 gate token
@@ -275,7 +285,7 @@ def squad_qa(data_filename):
                     gate_res.sequences,
                     attention_mask=combined_attention_mask, # Pass the mask here
                     max_new_tokens=24,
-                    do_sample=True,
+                    do_sample=False,
                     temperature=0.1,
                     logits_processor=processors,
                     past_key_values=gate_res.past_key_values,
@@ -299,7 +309,7 @@ if __name__ == '__main__':
     # Start tracking time for the verification run
     start_time = time.time()
 
-    test_file_name = 'tiny_dev_12'
+    test_file_name = 'official_50_sample'
     
     # Path to your existing dev file
     dev_file_path = f'dev-data/{test_file_name}.csv'
@@ -308,7 +318,7 @@ if __name__ == '__main__':
     print("=" * 60)
 
     # Step 1: Execute the Elite QA Pipeline (Gating + Grounded Extraction)
-    # This will process the 12 samples (approx. 2.5 minutes on CPU)
+    # This will process all samples (approx. 12s/sample on CPU)
     out_filename = squad_qa(dev_file_path)
 
     print("\n" + "=" * 60)
@@ -320,16 +330,15 @@ if __name__ == '__main__':
         results_file=out_filename,
         trial_name=f"{test_file_name}_{datetime.now().strftime('%Y%m%d%H%M')}",
         log_file='dev-data/trials_log.md',
+        prob_threshold=0.05,
+        bias_value=20.0
     )
-
-    eval_out = evaluate_results(out_filename, final_answer_column='final_answer')
-    eval_out_list = [str((k, round(v, 3))) for (k, v) in eval_out.items()]
-    print('\n'.join(eval_out_list))
 
     # Step 3: Final runtime report
     elapsed_time = time.time() - start_time
     print(f"\n[DONE] Verification Complete.")
-    print(f"Total time for 12 samples: {elapsed_time:.2f} seconds")
-    print(f"Average time per sample: {elapsed_time/12:.2f} seconds")
+    num_samples = metrics['total_questions']
+    print(f"Total time for {num_samples} samples: {elapsed_time:.2f} seconds")
+    print(f"Average time per sample: {elapsed_time/num_samples:.2f} seconds")
     print(f"Results saved to: {out_filename}")
     print("=" * 60)

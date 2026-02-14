@@ -35,7 +35,7 @@ def evaluate_results(datafile, final_answer_column='final_answer'):
 
         for i, line in enumerate(csv_reader):
             gt_answer = json.loads(line[gt_answer_ind])
-            is_impossible = (line[is_impossible_ind].lower == "true")
+            is_impossible = (line[is_impossible_ind].lower() == "true")
             model_answer = line[final_model_answer_ind]
 
             predictions.append(
