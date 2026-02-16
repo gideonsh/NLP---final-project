@@ -125,8 +125,8 @@ def analyze_performance(results_file, trial_name=None, log_file='dev-data/trials
         f.write("\n")
         # Add detailed results table
         f.write("### Detailed Results\n\n")
-        f.write("| Index | Question | Actual Answer | Model Prediction | Status |\n")
-        f.write("|-------|----------|---------------|------------------|--------|\n")
+        f.write("| Index | Question | Actual Answer | Model Prediction | Margin | Status |\n")
+        f.write("|-------|----------|---------------|------------------|--------|--------|\n")
         
         for idx, row in df.iterrows():
             # Get Ground Truth
@@ -155,9 +155,16 @@ def analyze_performance(results_file, trial_name=None, log_file='dev-data/trials
             safe_gt = gt_text.replace('|', '\\|').replace('\n', ' ')
             safe_pred = model_pred.replace('|', '\\|').replace('\n', ' ')
             
+            # Get margin if it exists
+            margin_val = row.get('margin', 'N/A')
+            try:
+                margin_str = f"{float(margin_val):.4f}"
+            except (ValueError, TypeError):
+                margin_str = str(margin_val)
+            
             # Use idx to match logging (0-indexed)
             line_num = idx
-            f.write(f"| {line_num} | {safe_q[:50]}{'...' if len(safe_q) > 50 else ''} | {safe_gt} | {safe_pred} | {status} |\n")
+            f.write(f"| {line_num} | {safe_q[:50]}{'...' if len(safe_q) > 50 else ''} | {safe_gt} | {safe_pred} | {margin_str} | {status} |\n")
         
         f.write("\n")
         f.write(f"**correct binary classification:** {metrics['binary_accuracy']:.2f}% ({metrics['binary_correct']}/{metrics['total_questions']})\n\n")
@@ -200,6 +207,47 @@ def analyze_performance(results_file, trial_name=None, log_file='dev-data/trials
     return metrics
 
 
+def post_process_answer(answer):
+    """
+    Post-process the answer returned from stage 3 by:
+    1. Removing leading/trailing articles: "the", "a", "an"
+    2. Removing any leading single character (except "I")
+    3. Removing trailing "."
+    
+    Args:
+        answer: The raw answer string from the model
+        
+    Returns:
+        Cleaned answer string
+    """
+    if not answer or answer == "NO ANSWER":
+        return answer
+    
+    # Strip whitespace
+    cleaned = answer.strip()
+    
+    # Remove trailing "."
+    if cleaned.endswith("."):
+        cleaned = cleaned[:-1].strip()
+    
+    # Remove leading articles: the, a, an
+    tokens = cleaned.split()
+    if len(tokens) > 1 and tokens[0].lower() in ["the", "a", "an"]:
+        cleaned = " ".join(tokens[1:]).strip()
+
+    # Remove leading single character (except "I")
+    # Split by whitespace to get the first token
+    tokens = cleaned.split()
+    if len(tokens) > 1:  # Only process if there are multiple tokens
+        first_token = tokens[0]
+        # Remove if it's a single character, it's a letter, and not "I"
+        if len(first_token) == 1 and first_token.isalpha() and first_token.upper() != "I":
+            tokens = tokens[1:]
+            cleaned = " ".join(tokens)
+    
+    return cleaned.strip()
+
+
 # Define the processor outside or inside the function - Stage 3
 class SQuADLogitBiasProcessor(LogitsProcessor):
     """
@@ -222,11 +270,12 @@ class SQuADLogitBiasProcessor(LogitsProcessor):
         
         return scores
 
-def squad_qa(data_filename, prob_threshold=0.05, bias_value=10.0):
+def squad_qa(data_filename, prob_threshold=0.01, bias_value=20.0):
     df = pd.read_csv(data_filename)
     no_token_id = tokenizer.convert_tokens_to_ids("NO")
     
     final_answers = []
+    margins = []
 
     for idx, row in df.iterrows():
         # --- STAGE 1: Prompt Construction ---
@@ -237,56 +286,60 @@ def squad_qa(data_filename, prob_threshold=0.05, bias_value=10.0):
         prompt = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
         inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
 
-        # --- STAGE 2: Cached Single-Pass Gating (Efficiency Fix) ---
+        # --- STAGE 2: Decoupled Binary Classification (Gating) ---
         with torch.no_grad():
+            # Get the raw, unbiased "honest" logits for the first token
+            # Essential for Stage 3 KV cache reuse
             gate_res = model.generate(
                 **inputs,
                 max_new_tokens=1,
                 output_scores=True,
                 return_dict_in_generate=True,
-                use_cache=True, # Essential for < 20s runtime
+                temperature=1.5,
+                use_cache=True, 
                 pad_token_id=tokenizer.eos_token_id
             )
             
             # Extract unbiased probabilities
             logits = gate_res.scores[0][0]
             probs = torch.softmax(logits, dim=-1)
-            
-            # Get valid IDs for the margin calculation
+
+            # Identify valid content tokens for contrastive comparison
             ctx_ids = tokenizer.encode(row['context'], add_special_tokens=False)
             ctx_ids_sp = tokenizer.encode(" " + row['context'], add_special_tokens=False)
             content_ids = list(set(ctx_ids + ctx_ids_sp))
-            
+
+            # Calculate Probability-based Margin
             no_prob = probs[no_token_id].item()
             
             # ELITE ACCURACY TWEAK: Sum Top-5 content tokens
             # This 'Phrase Signal' helps counter the model's 'NO' bias.
             if content_ids:
                 phrase_prob = torch.topk(probs[content_ids], min(5, len(content_ids))).values.sum().item()
-                prob_margin = no_prob - phrase_prob
+                margin = no_prob - phrase_prob
             else:
-                prob_margin = 1.0
+                margin = 1.0 # Force NO ANSWER if context is empty
 
         # --- THE GATE DECISION ---
-        if prob_margin > prob_threshold:
-            final_answer = "NO ANSWER"
-            print(f"[{idx}] GATE: CLOSED (Margin: {prob_margin:.4f})")
+        if margin > prob_threshold:
+            # ELITE MOVE: If the model's natural instinct is "Impossible", stop here.
+            final_answer = NO_ANSWER_MARKER
+            print(f"[{idx}] GATE: CLOSED (Prob Margin: {margin:.4f}) -> NO ANSWER")        
+        
         else:
             # --- STAGE 3: Resumed Grounded Generation ---
             valid_ids = list(set(content_ids + [no_token_id, tokenizer.eos_token_id]))
             processors = LogitsProcessorList([SQuADLogitBiasProcessor(valid_ids, bias_value=bias_value)])
 
             # FIX: Create an attention mask for the combined sequence (input + first generated token)
-            # gate_res.sequences contains the prompt + the 1 gate token
             combined_attention_mask = torch.ones(gate_res.sequences.shape, device=model.device)
 
             with torch.no_grad():
                 outputs = model.generate(
                     gate_res.sequences,
-                    attention_mask=combined_attention_mask, # Pass the mask here
-                    max_new_tokens=24,
+                    attention_mask=combined_attention_mask,
+                    max_new_tokens=12,
                     do_sample=False,
-                    temperature=0.1,
                     logits_processor=processors,
                     past_key_values=gate_res.past_key_values,
                     use_cache=True,
@@ -294,12 +347,16 @@ def squad_qa(data_filename, prob_threshold=0.05, bias_value=10.0):
                 )
             
             gen_text = tokenizer.decode(outputs[0][inputs.input_ids.shape[-1]:], skip_special_tokens=True).strip()
+            # Apply post-processing to clean up the answer
+            gen_text = post_process_answer(gen_text)
             final_answer = "NO ANSWER" if (not gen_text or "NO ANSWER" in gen_text.upper()) else gen_text
-            print(f"[{idx}] GATE: OPEN (Margin: {prob_margin:.4f}) -> {final_answer}")
+            print(f"[{idx}] GATE: OPEN (Prob Margin: {margin:.4f}) -> {final_answer}")
 
         final_answers.append(final_answer)
+        margins.append(margin)
 
     df['final_answer'] = final_answers
+    df['margin'] = margins
     df.to_csv(data_filename.replace('.csv', '-results.csv'), index=False)
 
     return data_filename.replace('.csv', '-results.csv')
@@ -309,7 +366,7 @@ if __name__ == '__main__':
     # Start tracking time for the verification run
     start_time = time.time()
 
-    test_file_name = 'official_50_sample'
+    test_file_name = 'full_data_set'
     
     # Path to your existing dev file
     dev_file_path = f'dev-data/{test_file_name}.csv'
@@ -329,9 +386,7 @@ if __name__ == '__main__':
     metrics = analyze_performance(
         results_file=out_filename,
         trial_name=f"{test_file_name}_{datetime.now().strftime('%Y%m%d%H%M')}",
-        log_file='dev-data/trials_log.md',
-        prob_threshold=0.05,
-        bias_value=20.0
+        log_file='dev-data/results_log.md',
     )
 
     # Step 3: Final runtime report
