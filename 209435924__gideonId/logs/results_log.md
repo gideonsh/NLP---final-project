@@ -1041,19 +1041,21 @@ correct binary classification: 71.20% (712/1000)
 ============================================================
 
 Detailed Metrics:
-('exact', 55.2)
-('f1', 61.41)
-('total', 1000)
-('HasAns_exact', 52.055)
-('HasAns_f1', 64.208)
-('HasAns_total', 511)
-('NoAns_exact', 58.487)
-('NoAns_f1', 58.487)
-('NoAns_total', 489)
-('best_exact', 55.2)
-('best_exact_thresh', 0.0)
-('best_f1', 61.41)
-('best_f1_thresh', 0.0)
+| Metric | Value |
+| :--- | :--- |
+| exact | 55.2 |
+| f1 | 61.41 |
+| total | 1000 |
+| HasAns_exact | 52.055 |
+| HasAns_f1 | 64.208 |
+| HasAns_total | 511 |
+| NoAns_exact | 58.487 |
+| NoAns_f1 | 58.487 |
+| NoAns_total | 489 |
+| best_exact | 55.2 |
+| best_exact_thresh | 0.0 |
+| best_f1 | 61.41 |
+| best_f1_thresh | 0.0 |
 ============================================================
 
 ---
@@ -2095,19 +2097,21 @@ correct binary classification: 71.30% (713/1000)
 ============================================================
 
 Detailed Metrics:
-('exact', 55.4)
-('f1', 62.153)
-('total', 1000)
-('HasAns_exact', 52.25)
-('HasAns_f1', 65.466)
-('HasAns_total', 511)
-('NoAns_exact', 58.691)
-('NoAns_f1', 58.691)
-('NoAns_total', 489)
-('best_exact', 55.4)
-('best_exact_thresh', 0.0)
-('best_f1', 62.153)
-('best_f1_thresh', 0.0)
+| Metric | Value |
+| :--- | :--- |
+| exact | 55.4 |
+| f1 | 62.153 |
+| total | 1000 |
+| HasAns_exact | 52.25 |
+| HasAns_f1 | 65.466 |
+| HasAns_total | 511 |
+| NoAns_exact | 58.691 |
+| NoAns_f1 | 58.691 |
+| NoAns_total | 489 |
+| best_exact | 55.4 |
+| best_exact_thresh | 0.0 |
+| best_f1 | 62.153 |
+| best_f1_thresh | 0.0 |
 
 ---
 
