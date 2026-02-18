@@ -1,6 +1,7 @@
 .env
 
-*-results.csv
+dev-data/*-results.csv
+data/*-results.csv
 
 **/__pycache__/*
 

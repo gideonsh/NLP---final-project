@@ -229,8 +229,8 @@ def analyze_performance(results_file, trial_name=None, log_file='dev-data/trials
         file_handle.write(f"| **Total Questions** | {metrics['total_questions']} |\n")
         file_handle.write(f"| **Binary Classification** | {metrics['binary_accuracy']:.2f}% |\n")
         file_handle.write("\n### Detailed Results\n\n")
-        file_handle.write("| Index | Question | Actual | Model Prediction | Margin | Status |\n")
-        file_handle.write("|-------|----------|--------|------------------|--------|--------|\n")
+        file_handle.write("| Index | Question | Actual | Model Prediction | Status |\n")
+        file_handle.write("|-------|----------|--------|------------------|--------|\n")
         
         # Iterate over results for detailed logging
         for index, row in dataframe.iterrows():
@@ -261,15 +261,7 @@ def analyze_performance(results_file, trial_name=None, log_file='dev-data/trials
             safe_ground_truth = ground_truth_text.replace('|', '\\|').replace('\n', ' ')
             safe_prediction = model_prediction.replace('|', '\\|').replace('\n', ' ')
             
-            margin_value = row.get('margin', 'N/A')
-
-            # Format margin as string
-            try:
-                margin_string = f"{float(margin_value):.4f}"
-            except (ValueError, TypeError):
-                margin_string = str(margin_value)
-            
-            file_handle.write(f"| {index} | {safe_question[:50]} | {safe_ground_truth} | {safe_prediction} | {margin_string} | {status} |\n")
+            file_handle.write(f"| {index} | {safe_question[:50]} | {safe_ground_truth} | {safe_prediction} | {status} |\n")
         
         file_handle.write(f"\n**correct binary classification:** {metrics['binary_accuracy']:.2f}%\n\n")
         
