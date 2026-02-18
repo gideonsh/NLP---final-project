@@ -1305,3 +1305,41 @@ High NoAns accuracy but low HasAns F1 suggests the model is too conservative.
 
 ---
 
+## tiny_dev_12_202602182304
+**Timestamp:** 2026-02-18 23:04:42
+
+**Dataset:** dev-data/tiny_dev_12-results.csv
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Overall EM** | 58.33 |
+| **Overall F1** | 61.67 |
+| **NoAns Accuracy** | 75.00% (3/4) |
+| **HasAns F1** | 55.00 |
+| **HasAns EM** | 50.00 |
+| **Total Questions** | 12 |
+| **Binary Classification** | 75.00% |
+
+### Detailed Results
+
+| Index | Question | Actual | Model Prediction | Margin | Status |
+|-------|----------|--------|------------------|--------|--------|
+| 0 | When were basic channels first introduced by BSkyB | NO ANSWER | NO ANSWER | 1.0000 | ✅ |
+| 1 | What is the expression set called where three inte | NO ANSWER | NO ANSWER | 0.0148 | ✅ |
+| 2 | What provides a solution to a list of integers pro | deterministic sorting algorithm quicksort | NO ANSWER | 0.0118 | ❌ |
+| 3 | What are the Sky Q mini set top boxes never able t | NO ANSWER | satellite | -0.1074 | ❌ |
+| 4 | A problem set that that is hard for the expression | NP-hard | NO ANSWER | 0.0807 | ❌ |
+| 5 | When did Sky launch a TV advertising campaign targ | September 2007 | September 2007 | 0.0000 | ✅ |
+| 6 | In what unit is the size of the input measured? | bits | bits | 0.0000 | ✅ |
+| 7 | What do encrypted broadcasts never require? | NO ANSWER | NO ANSWER | 0.0341 | ✅ |
+| 8 | What are the two integer responses to a decision p | 1 or 0 | YES, 0 | -0.3515 | ❌ |
+| 9 | The Los Angeles Rams are an example of what kind o | NFL | National | -0.1093 | ❌ |
+| 10 | What is the name of the desert near the border of  | Mojave Desert | The Mojave Desert | 0.0000 | ❌ |
+| 11 | Other than Point Conception, what landmark is used | Tehachapi Mountains | The Tehachapi Mountains | 0.0000 | ❌ |
+
+**correct binary classification:** 75.00%
+
+---
+
