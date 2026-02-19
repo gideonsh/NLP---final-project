@@ -6,10 +6,9 @@ import pandas as pd
 from datetime import datetime
 from dotenv import load_dotenv
 
-load_dotenv()
-huggingface_token = os.getenv('HF_TOKEN')
-
 torch.set_default_device('cpu')
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 from utils.evaluate_results import NO_ANSWER_MARKER, evaluate_results
 from transformers import AutoModelForCausalLM, AutoTokenizer, LogitsProcessor, LogitsProcessorList
 
@@ -380,29 +379,19 @@ def squad_qa(data_filename):
 if __name__ == '__main__':
     start_time = time.time()
 
-    test_file_name = 'tiny_dev_12'
-    dev_file_path = f'dev-data/{test_file_name}.csv'
-    
-    print(f"[START] Starting Dev-Verification on: {dev_file_path}")
-    print("=" * 60)
+    with open('config.json', 'r') as json_file:
+        config = json.load(json_file)
 
-    # Process dataset through the pipeline
-    output_filename = squad_qa(dev_file_path)
+    data = pd.read_csv(config['data'])
+    sample = data.sample(n=config['sample_for_solution'])  # for grading will be replaced with 'sample_for_grading'
+    sample_filename = config['data'].replace('.csv', '-sample.csv')
+    sample.to_csv(sample_filename, index=False)
 
-    print("\n" + "=" * 60)
-    print("Step 2: Running Deep-Dive Analysis...")
-    
-    # Run evaluation and log results
-    metrics = analyze_performance(
-        results_file=output_filename,
-        trial_name=f"{test_file_name}_{datetime.now().strftime('%Y%m%d%H%M')}",
-        log_file='dev-data/trials_log.md',
-    )
+    out_filename = squad_qa(sample_filename)  # todo: the function you implement
+
+    eval_out = evaluate_results(out_filename, final_answer_column='final answer')
+    eval_out_list = [str((k, round(v, 3))) for (k, v) in eval_out.items()]
+    print('\n'.join(eval_out_list))
 
     elapsed_time = time.time() - start_time
-    print(f"\n[DONE] Verification Complete.")
-    num_samples = metrics['total_questions']
-    print(f"Total time for {num_samples} samples: {elapsed_time:.2f} seconds")
-    print(f"Average time per sample: {elapsed_time/num_samples:.2f} seconds")
-    print(f"Results saved to: {output_filename}")
-    print("=" * 60)
+    print(f"time: {elapsed_time: .2f} sec")
